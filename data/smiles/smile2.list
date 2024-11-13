@@ -1,0 +1,6 @@
+O=C(Cl)C1CC(C(=O)Cl)CC(C(=O)Cl)C1
+O=C(Cl)C1=CC(C(=O)Cl)=CC(C(=O)Cl)=C1
+O=C(Cl)C1=CC=C(C(=O)Cl)C=C1
+O=C(C1C=C(C2=CC(C(Cl)=O)=CC(C(Cl)=O)=C2)C=C(C(Cl)=O)C=1)Cl
+O=C(Cl)C1=CC=C(C2=CC(C(=O)Cl)=CC(C(=O)Cl)=C2)C=C1
+O=C(C1C=CC(=CC=1)C1C=CC(=CC=1)C(=O)Cl)Cl

@@ -1,0 +1,4 @@
+# 忽略 logs 文件夹内的所有内容
+tmp/*
+# 保留 logs 文件夹本身
+!tmp/.gitkeep
