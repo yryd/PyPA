@@ -4,11 +4,16 @@
 import logging
 import concurrent.futures
 from src.database import DatabaseModule
-from src.simulator import simulation_init
+from src.simulator import *
 from src.optimizer import optimize_structure
 from src.builder import construct_system, construct_reaction_map
 
+from pysimm.system import System, read_lammps
+from pysimm.lmps import Simulation
+
 from src.filewriter import write_lammps_in
+
+from pysimm import forcefield
 
 
 from src.template_generator import generate_reaction_templates
@@ -38,19 +43,83 @@ def run_simulation(id, tmp_path = 'tmp/'):
     logging.info('小分子结构优化完成')
     
     # Step 4: 构建分子系统
-    construct_system(path_dict)
+    construct_system(path_dict, box_len = 60)
     logging.info('体系坐标构建完成')
     
     # Step 5: 生成反应模板
     construct_reaction_map(path_dict)
     logging.info('反应映射模板构建完成')
     
-    # # Step 6: 生成 Lammps 输入文件
-    # write_lammps_in(data_PATH, map_PATH, run_PATH)
-    # logging.info('Lammps 输入文件写入完成')
+    # Step 6: 检测输入文件完整性，复制到运行目录
+    simulation_file_collect(path_dict)
+    logging.info('拓扑、映射文件准备完成')
+
+    # Step 7: 新建模拟，生成 Lammps 输入文件
+    sys_params = {
+        "quiet": False,  # 是否打印状态信息
+        "atom_style": "full",  # 原子样式
+        "pair_style": "lj/cut",  # 配对样式
+        "bond_style": "harmonic",  # 键样式
+        "angle_style": "harmonic",  # 角样式
+        "dihedral_style": "fourier",  # 二面角样式
+        "improper_style": "cvff",  # 不当样式（共轭平面性）
+        "set_types": True,  # 是否将类型对象化
+        "name": "System_all"  # 系统名称
+    }
+    system = SystemModule(path_dict, sys_params)
+
+    simulation_params = {
+        'minimization_enabled': True,  # 是否进行最小化
+        'minimization_params': {
+            'min_style': 'cg',  # 最小化方法
+            'etol': 1e-5,  # 能量容忍度
+            'ftol': 1e-5,  # 力容忍度
+            'maxiter': 10000,  # 最大迭代次数
+            'maxeval': 100000,  # 最大评估次数
+            'unfix': True  # 使用后解除 fix
+        },
+        'velocity_enabled': True, # 是否进行速度随机
+        'velocity': {
+            'temperature': 300.0,  # 初始速度温度（单位：K）
+            'seed': 4928459,  # 随机种子
+            'distribution': 'gaussian'  # 速度分布类型
+        },
+        'thermodynamics_enabled': True,  # 是否进行松弛
+        'thermodynamics_params': {
+            'ensemble': 'nvt',  # 松弛动力学系综类型
+            'temperature': {  # 温度相关参数
+                'start': 298.15,  # 初始温度（单位：K）
+                'stop': 298.15,  # 结束温度（单位：K）
+                'damp': 100.0,  # 温度阻尼
+            },
+            'pressure': {  # 压力相关参数
+                'iso': 'iso',  # 压力类型
+                'start': 1.0,  # 初始压力（单位：atm）
+                'stop': 1.0,  # 结束压力（单位：atm）
+                'damp': 1000.0,  # 压力阻尼
+            },
+            'time_step': 1.0,  # 时间步长（单位：fs）
+            'total_time': 100000,  # 总模拟时间（单位：fs）
+            'unfix': True  # 使用后解除 fix
+        },
+        'output': {
+            'dump_file': 'traj_npt.xtc',  # 轨迹文件名称
+            'dump_frequency': 100,  # 轨迹输出频率
+            'thermo_frequency': 100  # 热力学输出频率
+        },
+        'restart': {
+            'restart_file': 'system_end.rst',  # 重启文件名称
+            'data_file': 'system_end.lmp'  # 数据文件名称
+        }
+    }
+    simulation = SimulationModule(path_dict, system)
+    simulation.get_lammps_in(simulation_params, gpu = False)
+    logging.info('Lammps 输入文件写入完成')
     
-    # # Step 6: 并行运行 LAMMPS 模拟
-    
+    # # Step 8: 运行 LAMMPS 模拟
+    os.chdir(path_dict['paths']['run'])
+    os.system('mpirun -np 2 lmp_mpi -echo screen -in in.lammps')
+
     # run_lammps_simulation("in.lammps")
 
     # # Step 7: 对运行结果分析扩散和孔径

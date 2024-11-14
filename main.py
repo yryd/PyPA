@@ -17,7 +17,7 @@ def main():
         
         # Step 3: 并行运行数据库每行的反应任务获取结果
         # run_parallel()
-        run_simulation(244)
+        run_simulation(477)
     except Exception as e:
         logging.exception(f"启动失败: {e}")
 

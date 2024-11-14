@@ -2,3 +2,6 @@
 tmp/*
 # 保留 logs 文件夹本身
 !tmp/.gitkeep
+
+__pycache__
+.vscode

@@ -1,5 +1,6 @@
 # optimizer.py
 # 该模块用于优化小分子结构并输出结果
+
 import os
 import logging
 from src.molecular import MolecularModule

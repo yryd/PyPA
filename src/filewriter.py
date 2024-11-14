@@ -19,12 +19,13 @@ def write_sys_lt_str(lt_PATH, name_list, num_list, box_len = 0):
         str_list.append(f'import "{lt_PATH}{i}.lt"\n')
     str_list.append('\n')
     for i,j in zip(name_list, num_list):
-        str_list.append(f'mol_{i} = new {i} [{j}]\n')
+        if j:
+            str_list.append(f'mol_{i} = new {i} [{j}]\n')
     
     if box_len:
-        str_list.append('write_once("Data Boundary") {\n')
+        str_list.append('\nwrite_once("Data Boundary") {\n')
         str_list.append(f'    0.0 {box_len} xlo xhi\n')
-        str_list.append(f'    0.0 {box_len} xlo xhi\n')
+        str_list.append(f'    0.0 {box_len} ylo yhi\n')
         str_list.append(f'    0.0 {box_len} zlo zhi\n')
         str_list.append('}\n')
     return str_list
@@ -39,8 +40,7 @@ def write_sys_lt(lt_PATH, name_list, num_list, box_len = 0):
         str_list: 文件的多行字符串列表。
     """
     str_list = write_sys_lt_str(lt_PATH, name_list, num_list, box_len)
-    with open(lt_PATH + 'system.lt', 'w') as file:
-        file.writelines(str_list)
+    write_file(lt_PATH, 'system.lt', str_list)
     return
 
 def write_template_lt(lt_PATH, pre_template_list, post_template_list, index = 0):
@@ -154,3 +154,99 @@ def write_lammps_in(data_PATH, map_PATH, run_PATH):
 
     # 将构建的内容写入 LAMMPS 输入文件
     write_file(run_PATH, 'in.system', str_list)
+
+
+def combin_files(run_PATH):
+    # 读取 system.data 的内容
+    with open(f'{run_PATH}system.data', 'r') as infile:
+        data_lines = infile.readlines()
+
+    # 读取 system.in.settings 的内容
+    with open(f'{run_PATH}system.in.settings', 'r') as infile:
+        settings_lines = infile.readlines()
+
+    # settings_lines 标签格式化
+    settings_lines = convert_to_label_format(settings_lines)
+    # 找到 Atoms 标签的位置
+    atoms_index = None
+    for index, line in enumerate(data_lines):
+        if line.strip() == "Atoms":
+            atoms_index = index
+            break
+
+    # 如果找到了 Atoms 标签，则插入 settings_lines
+    if atoms_index is not None:
+        # 在 Atoms 标签之前插入 settings_lines
+        data_lines[atoms_index:atoms_index] = settings_lines
+
+    # 将合并后的内容写入新的文件
+    with open(f'{run_PATH}sys_init.lmps', 'w') as outfile:
+        outfile.writelines(data_lines)
+
+def convert_to_label_format(data):
+    data = remove_comments(data)
+    # 分区
+    sections = {
+        "pair_coeff": [],
+        "bond_coeff": [],
+        "angle_coeff": [],
+        "dihedral_coeff": [],
+        "improper_coeff": []
+    }
+
+    # 按行处理输入数据
+    for line in data.strip().split('\n'):
+        line = line.strip()
+        if line.startswith("pair_coeff"):
+            parts = line.split()
+            sections["pair_coeff"].append((parts[1], parts[4], parts[5]))  # 只保留类型和参数
+        elif line.startswith("bond_coeff"):
+            parts = line.split()
+            sections["bond_coeff"].append((parts[1], parts[3], parts[4]))  # 保留类型和参数
+        elif line.startswith("angle_coeff"):
+            parts = line.split()
+            sections["angle_coeff"].append((parts[1], parts[3], parts[4]))  # 保留类型和参数
+        elif line.startswith("dihedral_coeff"):
+            parts = line.split()
+            sections["dihedral_coeff"].append((parts[1], *parts[3:]))  # 保留类型和参数
+        elif line.startswith("improper_coeff"):
+            parts = line.split()
+            sections["improper_coeff"].append((parts[1], parts[3], parts[4], parts[5]))  # 保留类型和参数
+
+    # 输出结果
+    output = []
+
+    # Pair Coeffs
+    output.append("Pair Coeffs\n\n")
+    for idx, (type1, epsilon, sigma) in enumerate(sections["pair_coeff"], start=1):
+        output.append(f"{idx} {epsilon} {sigma}\n")
+
+    # Bond Coeffs
+    output.append("\nBond Coeffs\n\n")
+    for idx, (type1, k, r0) in enumerate(sections["bond_coeff"], start=1):
+        output.append(f"{idx} {k} {r0}\n")
+
+    # Angle Coeffs
+    output.append("\nAngle Coeffs\n\n")
+    for idx, (type1, k, theta0) in enumerate(sections["angle_coeff"], start=1):
+        output.append(f"{idx} {k} {theta0}\n")
+
+    # Dihedral Coeffs
+    output.append("\nDihedral Coeffs\n\n")
+    for idx, (type1, *params) in enumerate(sections["dihedral_coeff"], start=1):
+        output.append(f"{idx} " + " ".join(params) + "\n")
+
+    # Improper Coeffs
+    output.append("\nImproper Coeffs\n\n")
+    for idx, (type1, k, phi0, phi1) in enumerate(sections["improper_coeff"], start=1):
+        output.append(f"{idx} {k} {phi0} {phi1}\n")
+
+    output.append("\n")
+    
+    return "".join(output)
+
+def remove_comments(data):
+    # 去除注释
+    return "\n".join(line.split("#")[0].strip() for line in data)
+
+

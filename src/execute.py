@@ -113,7 +113,7 @@ def exec_AutoMapper_clean(data_PATH, map_PATH):
     # 执行脚本并丢弃输出信息
     try:
         logging.info("清理反应模板 DATA 文件...")
-        os.system(f'. {data_PATH}AutoMapper_clean.sh > /dev/null 2>&1')
+        os.system(f'. {data_PATH}AutoMapper_clean.sh')
         logging.info("整理力场信息完成")
     except Exception as e:
         logging.error(f"清理文件力场出错: {e}")
@@ -155,7 +155,7 @@ def exec_AutoMapper(map_PATH, reaction_index_dicts_list, atom_ele_type_str):
     os.chdir(map_PATH)
     try:
         logging.info("自动映射，产生反应模板文件中...")
-        os.system(f'. {map_PATH}AutoMapper.sh > /dev/null 2>&1')
+        os.system(f'. {map_PATH}AutoMapper.sh')
     except Exception as e:
         logging.error(f"自动映射出错: {e}")
         raise

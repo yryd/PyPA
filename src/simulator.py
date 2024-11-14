@@ -4,7 +4,8 @@
 import os
 import logging
 import ast
-from pysimm.system import System
+from src.filewriter import write_file, combin_files
+from pysimm.system import System, read_lammps
 from pysimm.lmps import Simulation
 
 # 设置日志
@@ -94,7 +95,9 @@ def simulation_init(db, id, tmp_path):
         'sys': os.path.join(reaction_path, 'sys') + '/',
         'map': os.path.join(reaction_path, 'map') + '/',
         'data': os.path.join(reaction_path, 'data') + '/',
-        'run': os.path.join(reaction_path, 'run') + '/'
+        'run': os.path.join(reaction_path, 'run') + '/',
+        'logs': os.path.join(reaction_path, 'logs') + '/',
+        'result': os.path.join(reaction_path, 'run') + '/result/'
     }
 
     # 创建所有子目录
@@ -106,15 +109,165 @@ def simulation_init(db, id, tmp_path):
     path_dict['paths'] = paths
     return path_dict
 
+def simulation_file_collect(path_dict):
+    data_PATH = path_dict['paths']['data']
+    map_PATH = path_dict['paths']['map']
+    run_PATH = path_dict['paths']['run']
+    post_nums = len(path_dict['smiles']['p'])
+    str_list = []
+    str_list.append(f'cp {data_PATH}cleanedsystem.data {run_PATH}system.data\n')
+    str_list.append(f'cp {data_PATH}cleanedsystem.in.settings {run_PATH}system.in.settings\n')
+    str_list.append(f'cp {data_PATH}system.in.init {run_PATH}system.in.init\n')
+    str_list.append(f'cp {map_PATH}pre_mol.data {run_PATH}pre_mol.data\n')
+    for i in range(post_nums):
+        str_list.append(f'cp {map_PATH}post_{i}_mol.data {run_PATH}post_{i}_mol.data\n')
+        str_list.append(f'cp {map_PATH}automap_{i}.data {run_PATH}automap_{i}.data\n')
+    
+    write_file(run_PATH, 'getfile.sh', str_list)
+    
+    try:
+        os.system(f'. {run_PATH}getfile.sh > /dev/null 2>&1')
+        # 将 system.data 和 system.in.settings 的内容合并到 data.sys
+        combin_files(run_PATH)
+    except Exception as e:
+        logging.error(f"校验生成文件完整性出错: {e}")
+        raise
+
+
 # 继承 pysimm 包 System 类
 class SystemModule(System):
-    def __init__(self):
+    def __init__(self, path_dict, params):
         super().__init__()
-
-
-
+        self.run_PATH = path_dict['paths']['run']
+        self.data_all = self.run_PATH + 'sys_init.lmps'
+        self.updata_lmps(params)
+    
+    def updata_lmps(self, params):
+        pysimm_system = read_lammps(self.data_all, **params)
+        # 将 pysimm_system 的属性更新到当前 SystemModule 实例
+        self.__dict__.update(pysimm_system.__dict__)
 
 # 继承 pysimm 包 Simulation 类
 class SimulationModule(Simulation):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, path_dict, system):
+        super().__init__(system, log= f'{path_dict["paths"]["logs"]}steps.log', custom  = True)
+        self.run_PATH = path_dict['paths']['run']
+        self.result_PATH = path_dict['paths']['result']
+        self.map_PATH = path_dict['paths']['map']
+        self.molnum = path_dict['num']
+        self.molsnames = path_dict['names']
+        
+    @staticmethod
+    def init_writer():
+        init_str = ''
+        init_str += '#' * 80 + '\n'
+        init_str += "units           real\n"
+        init_str += "pair_style      lj/cut 12.0\n"
+        init_str += "atom_style      full\n"
+        init_str += "bond_style      harmonic\n"
+        init_str += "angle_style     harmonic\n"
+        init_str += "dihedral_style  fourier\n"
+        init_str += "improper_style  cvff\n"
+        init_str += "\n"
+        init_str += "dimension       3\n"
+        init_str += "boundary        p p p\n"
+        init_str += "neigh_modify    every 1 delay 0 check yes\n"
+        init_str += "neighbor        2.5 bin\n"
+        init_str += "read_data       sys_init.lmps\n"
+        init_str += '#' * 80 + '\n'
+        return init_str
+
+    def input_conditions(self, simulation_params):
+        self.input_conditions_start(simulation_params)
+        self.input_conditions_custum()
+        self.input_conditions_end(simulation_params)
+
+    def input_conditions_start(self, simulation_params):
+        # 初始化
+        init_str = self.init_writer()
+        self.add_custom(init_str)
+        
+        self.add_custom(f"write_data      {self.result_PATH}system_start.lmp")
+        # 能量最小化
+        if simulation_params.get('minimization_enabled'):
+            self.add_min(name = 'min_sys', **simulation_params['minimization_params'])
+        # 速度设置部分
+        if simulation_params.get('minimization_enabled'):
+            self.add_custom(f"\n\nvelocity        all create {simulation_params['velocity']['temperature']} {simulation_params['velocity']['seed']} rot yes dist {simulation_params['velocity']['distribution']}\n\n")
+
+        # 松弛结构
+        if simulation_params.get('thermodynamics_enabled'):
+            self.add_md(name = 'relax_md', **simulation_params['thermodynamics_params'])
+
+        # 输出
+        self.add_custom(f"\ndump            mydump1 all xtc {simulation_params['output']['dump_frequency']} {self.result_PATH}{simulation_params['output']['dump_file']}\n\n")
+
+    def input_conditions_custum(self):
+        react_len = 3.25
+        names = self.molsnames
+        nums = self.molnum
+        r1_name = names['r1']
+        r2_name = names['r2']
+        sol_name = names['sol']
+        p_names_list = names['p']
+        byp_name = names['byp']
+        r1_num = nums['r1']
+        r2_num = nums['r2']
+        sol_num = nums['sol']
+        post_type = len(p_names_list)
+        
+        str_tmp0 = ""
+        str_tmp0 += f"molecule        pre {self.map_PATH}pre_mol.data\n"
+        for i in range(post_type):
+            str_tmp0 += f"molecule        post_{i} {self.map_PATH}post_{i}_mol.data\n"
+        self.add_custom(str_tmp0)
+        
+        str_tmp1 = ""
+        str_tmp1 += "timestep        1\n"
+        str_tmp1 += "fix             md_normal  all npt temp 298.15 298.15 100.0 iso 1.0 1.0 1000.0\n"
+        str_tmp1 += "run             2000\n"
+        str_tmp1 += "unfix           md_normal\n"
+        self.add_custom(str_tmp1)
+        
+        str_tmp2 = ""
+        str_tmp2 += "fix             xlink_fix all bond/react stabilization yes statted_grp .03 &\n"
+        for i in range(post_type):
+            # 每 100 步反应一次，反应距离为 [0, react_len]
+            str_tmp2 += f"                    react rxn1 all 100 0 {react_len} pre post_{i} {self.map_PATH}automap_{i}.data stabilize_steps 100\n"
+        str_tmp2 += "fix             nvt_md all nvt temp 300.0 300.0 100.0\n"
+        str_tmp2 += "run             100000\n"
+        str_tmp2 += "unfix           nvt_md\n"
+        str_tmp2 += "fix             npt_md  all npt temp 298.15 298.15 100.0 iso 1.0 1.0 1000.0\n"
+        str_tmp2 += "run             100000\n"
+        str_tmp2 += "unfix           npt_md\n"
+        str_tmp2 += "unfix           xlink_fix\n"
+        self.add_custom(str_tmp2)
+        
+        
+    def input_conditions_end(self, simulation_params):
+        str_end = ''
+        str_end += "\n\n"
+        str_end += f"write_restart   {self.result_PATH}{simulation_params['restart']['restart_file']}\n"
+        str_end += f"write_data      {self.result_PATH}{simulation_params['restart']['data_file']}\n\n"
+        self.add_custom(str_end)
+
+    @staticmethod
+    def add_gpu(input_str):
+        # 定义需要查找的关键词
+        keywords = [' lj/cut ', ' lj/cut/coul/long ', ' nvt ', ' npt ', ' nve ']
+
+        # 遍历关键词并替换
+        for keyword in keywords:
+            if keyword in input_str:
+                # 替换关键词，添加后缀 '/gpu'
+                input_str = input_str.replace(keyword, f"{keyword[:-1]}/gpu ")
+        return input_str
+    
+    def get_lammps_in(self, simulation_params, gpu = False):
+        
+        self.input_conditions(simulation_params)
+        write_str = self.input
+        if gpu:
+            write_str = self.add_gpu(self.input)
+        with open(f'{self.run_PATH}in.lammps', 'w', encoding='utf-8') as file:
+            file.write(write_str)

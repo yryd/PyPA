@@ -27,7 +27,7 @@ def construct_system(path_dict, box_len = 60):
     
     # 执行各个步骤
     exec_ltemplify(data_PATH, lt_PATH, name_list)
-    write_sys_lt(lt_PATH, name_list, num_list)
+    write_sys_lt(lt_PATH, name_list, num_list, box_len)
     write_packmol_inp(sys_PATH, path_dict['paths']['mol'], name_list, num_list, box_len)
     exec_packmol(sys_PATH)
     
