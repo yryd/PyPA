@@ -1,0 +1,25 @@
+
+read_restart    "xlink_H2O_end.rst"
+
+fix             file_balance_out all print 100 "$(step) $(density) $(time) $(temp)" file "balance_H2O.log" title "step density time T"
+fix             relax_md all npt temp 298.15 298.15 100.0 x 1.0 1.0 1000 y 1.0 1.0 1000
+# 500ps
+run             500000
+unfix           relax_md
+unfix           file_balance_out
+
+write_dump      PA xyz xlink_no_sol_balance.xyz modify element C C H H H Cl N N O
+
+
+dump            dump_pure_water_press_dcd water dcd 1000 dump_pure_water_press.dcd
+
+fix             zwalls PA wall/reflect zhi EDGE
+fix             file_press_out all print 100 "$(step) $(density) $(press) $(time) $(temp)" file "press_H2O.log" title "step density P time T"
+fix             Z_force water 0.0 0.0 3.0
+fix             press_md all npt temp 298.15 298.15 100.0 x 1.0 1.0 1000 y 1.0 1.0 1000 z 1.0 1.0 1000
+run             500000
+unfix           press_md
+unfix           file_press_out
+unfix           Z_force
+
+quit

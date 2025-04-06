@@ -15,7 +15,7 @@
 # A unit test file designed for PyTest. This tests the neighbour searching tools
 ##############################################################################
 
-from LammpsSearchFuncs import get_neighbours, get_additional_neighbours
+from AutoMapper.LammpsSearchFuncs import get_neighbours, get_additional_neighbours
 
 atomList = ['1', '2', '3', '4', '5', '6', '7', '8']
 bondList = [['1', '1', '1', '2'], ['2', '1', '2', '3'], ['3', '1', '2', '4'], ['4', '1', '2', '5'], ['5', '1', '1', '6'], ['6', '1', '6', '7'], ['7', '1', '7', '8']]

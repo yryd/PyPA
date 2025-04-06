@@ -38,7 +38,7 @@ def simulation_init(db, id, tmp_path):
         solvent_id = db.get_value_by_id(id, 'solvent_key')
         sol_num = db.get_value_by_id(id, 'sol_num')
 
-        product_smiles = db.get_value_by_id(id, 'product_smiles')
+        product_smiles = "[H]c1c(C(=O)Cl)c([H])c(C(=O)N2C([H])([H])C([H])([H])N([H])C([H])([H])C2([H])[H])c([H])c1C(=O)Cl;[H]c1c(C(Cl)=O)c([H])c(C(N2C([H])([H])C([H])([H])N(Cc3c(c(C(Cl)=O)c(c(c3[H])C(Cl)=O)[H])[H])C([H])([H])C2([H])[H])=O)c([H])c1C(Cl)=O"
         byproduct_smiles = db.get_value_by_id(id, 'byproduct_smiles')
         
         reaction_index_dicts_str = db.get_value_by_id(id, 'reaction_index_dicts')

@@ -1,0 +1,33 @@
+# OPC3 Water
+# header section:
+3 atoms
+2 bonds
+1 angles
+
+# body section:
+Coords
+
+1 1.016900     -0.067500      0.082400  # O
+2 1.984800     -0.021100      0.082300  # H1
+3 0.738100      0.860500      0.080700  # H2
+
+Types
+
+1 1  # OW
+2 2  # HW
+3 2
+
+Charges
+
+1 -0.895170
+2 0.447585
+3 0.447585
+
+Bonds
+
+1 1 1 2  # O-H1
+2 1 1 3  # O-H2
+
+Angles
+
+1 1 2 1 3  # H1-O-H2

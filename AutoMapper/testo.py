@@ -1,4 +1,4 @@
-from LammpsUnifiedCleaner import file_unifier
+from AutoMapper.LammpsUnifiedCleaner import file_unifier
 
 DIR = '/home/matt/Documents/AddAtoms/'
 

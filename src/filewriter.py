@@ -9,6 +9,7 @@ def write_sys_lt_str(lt_PATH, name_list, num_list, box_len = 0):
     
     Args:
         name_list: 模板分子的名称列表。
+        num_list: 模板分子的数量列表。
     
     Returns:
         str_list: 文件的多行字符串列表。
@@ -21,6 +22,31 @@ def write_sys_lt_str(lt_PATH, name_list, num_list, box_len = 0):
     for i,j in zip(name_list, num_list):
         if j:
             str_list.append(f'mol_{i} = new {i} [{j}]\n')
+    
+    if box_len:
+        str_list.append('\nwrite_once("Data Boundary") {\n')
+        str_list.append(f'    0.0 {box_len} xlo xhi\n')
+        str_list.append(f'    0.0 {box_len} ylo yhi\n')
+        str_list.append(f'    0.0 {box_len} zlo zhi\n')
+        str_list.append('}\n')
+    return str_list
+
+def write_react_lt_str(lt_PATH, name_list, box_len = 0):
+    """生成 LT 反应前后模板文件的字符串内容。
+    
+    Args:
+        name_list: 模板分子的名称列表。
+    
+    Returns:
+        str_list: 文件的多行字符串列表。
+    """
+    str_list = []
+    str_list.append('import "gaff2.lt"\n')
+    for i in name_list:
+        str_list.append(f'import "{lt_PATH}{i}.lt"\n')
+    str_list.append('\n')
+    str_list.append(f'mol_{name_list[0]} = new {name_list[0]}\n')
+    str_list.append(f'mol_{name_list[1]} = new {name_list[1]}.move(0.0, 0.0, 5.0)\n')
     
     if box_len:
         str_list.append('\nwrite_once("Data Boundary") {\n')
@@ -51,8 +77,8 @@ def write_template_lt(lt_PATH, pre_template_list, post_template_list, index = 0)
         pre_template_list: 反应物模板分子名称列表。
         post_template_list: 产物模板分子名称列表。
     """
-    pre_str = write_sys_lt_str(lt_PATH, pre_template_list, [1,1])
-    post_str = write_sys_lt_str(lt_PATH, post_template_list, [1,1])
+    pre_str = write_react_lt_str(lt_PATH, pre_template_list)
+    post_str = write_react_lt_str(lt_PATH, post_template_list)
     write_file(lt_PATH, 'pre.lt', pre_str)
     write_file(lt_PATH, f'post_{index}.lt', post_str)
 

@@ -17,9 +17,9 @@
 ##############################################################################
 
 import os
-from LammpsToMolecule import lammps_to_molecule
-from LammpsTreatmentFuncs import clean_data
-from LammpsSearchFuncs import get_data, find_sections
+from AutoMapper.LammpsToMolecule import lammps_to_molecule
+from AutoMapper.LammpsTreatmentFuncs import clean_data
+from AutoMapper.LammpsSearchFuncs import get_data, find_sections
 
 def test_lammps_to_molecule():
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'Test_Cases/Methane_Ethane') # Allows for relative pathing in pytest

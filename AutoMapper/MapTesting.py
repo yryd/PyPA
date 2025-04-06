@@ -1,9 +1,9 @@
 ##############################################################################
-# Developed by: Matthew Bone
-# Last Updated: 30/07/2021
-# Updated by: Matthew Bone
+# 开发者: Matthew Bone
+# 最后更新: 30/07/2021
+# 更新者: Matthew Bone
 #
-# Contact Details:
+# 联系方式:
 # Bristol Composites Institute (BCI)
 # Department of Aerospace Engineering - University of Bristol
 # Queen's Building - University Walk
@@ -11,32 +11,32 @@
 # U.K.
 # Email - matthew.bone@bristol.ac.uk
 #
-# File Description:
-# Runs a series of different test molecules and print out resultant bonding pairs.
-# These pairs are compared to the known correct pairs and an accuracy percentage
-# is given. Many of these tests are not designed to be chemically practical; they're
-# designed to tax different parts of the path search system to check functionality
+# 文件描述:
+# 运行一系列不同的测试分子并打印出结果键对。
+# 这些键对与已知的正确键对进行比较，并给出准确率百分比。
+# 许多测试不是为了化学实用性设计的，而是为了测试路径搜索系统的不同部分功能
 ##############################################################################
 
-from MapProcessor import map_processor, restore_dir
+from AutoMapper.MapProcessor import map_processor, restore_dir
 
-# Toggle Debug and Test Reports
+# 调试和测试报告开关
 DEBUG = False
 TEST_DEBUG = False
 
 def test_report(mappedIDList, correctPostAtomIDs, reactionName, reactionForm):
-    print(f'Reaction: {reactionName}')
+    """生成测试报告并打印结果"""
+    print(f'反应: {reactionName}')
     if reactionForm == 'Full':
         mappedIDList = mappedIDList[0]
     elif reactionForm == 'Partial':
         mappedIDList = mappedIDList[1]
 
-    # Print test report
+    # 打印测试报告
     if TEST_DEBUG:
         for mappedPair in mappedIDList:
-            print(f'Atom {mappedPair[0]} is mapped to atom {mappedPair[1]}')
+            print(f'原子 {mappedPair[0]} 映射到原子 {mappedPair[1]}')
 
-    
+    # 计算准确率
     totalAtoms = len(correctPostAtomIDs)
     correctAtoms = 0
     incorrectPreAtomsList = []
@@ -49,9 +49,9 @@ def test_report(mappedIDList, correctPostAtomIDs, reactionName, reactionForm):
     mappedPostAtomsList = [val[1] for val in mappedIDList]
     repeatedPostIDs = [val for val in mappedPostAtomsList if mappedPostAtomsList.count(val) > 1]
 
-    print(f'Total atoms: {totalAtoms}. Correct atoms: {correctAtoms}. Accuracy: {round(correctAtoms / totalAtoms * 100, 1)}%')
-    print(f'Incorrectly assigned premolecule atomIDs: {incorrectPreAtomsList}, Count {len(incorrectPreAtomsList)}')
-    print(f'Repeated Atoms: {repeatedPostIDs}, Count: {len(repeatedPostIDs)}\n\n')
+    print(f'总原子数: {totalAtoms}. 正确原子数: {correctAtoms}. 准确率: {round(correctAtoms / totalAtoms * 100, 1)}%')
+    print(f'错误分配的前分子原子ID: {incorrectPreAtomsList}, 数量 {len(incorrectPreAtomsList)}')
+    print(f'重复原子: {repeatedPostIDs}, 数量: {len(repeatedPostIDs)}\n\n')
 
 # DGEBA-DETDA
 with restore_dir():

@@ -1,9 +1,9 @@
 ##############################################################################
-# Developed by: Matthew Bone
-# Last Updated: 30/07/2021
-# Updated by: Matthew Bone
+# 开发者: Matthew Bone
+# 最后更新: 30/07/2021
+# 更新者: Matthew Bone
 #
-# Contact Details:
+# 联系方式:
 # Bristol Composites Institute (BCI)
 # Department of Aerospace Engineering - University of Bristol
 # Queen's Building - University Walk
@@ -11,13 +11,11 @@
 # U.K.
 # Email - matthew.bone@bristol.ac.uk
 #
-# File Description:
-# The main molecule and map generating code for AutoMapper. map_processor will
-# create pre- and post-bond molecule files from regular LAMMPS input files. It
-# will then create a full map file before deciding if a partial structure can
-# be created. If a partial structure is required, the molecule files and map
-# will be cut down and renumbered accordingly. Finally, two molecule files and
-# a map file named "automap.data" will be generated.
+# 文件描述:
+# AutoMapper 的主要分子和映射生成代码。map_processor 将从常规 LAMMPS 输入文件创建
+# 反应前和反应后的分子文件。然后创建完整的映射文件，并决定是否需要创建部分结构。
+# 如果需要部分结构，分子文件和映射将被裁剪并重新编号。最后，将生成两个分子文件和
+# 一个名为 "automap.data" 的映射文件。
 ##############################################################################
 
 import os
@@ -26,22 +24,22 @@ import contextlib
 from natsort import natsorted
 from copy import deepcopy
 
-from PathSearch import map_from_path
-from LammpsToMolecule import lammps_to_molecule
-from LammpsTreatmentFuncs import save_text_file
-from LammpsSearchFuncs import element_atomID_dict
-from AtomObjectBuilder import build_atom_objects
+from AutoMapper.PathSearch import map_from_path
+from AutoMapper.LammpsToMolecule import lammps_to_molecule
+from AutoMapper.LammpsTreatmentFuncs import save_text_file
+from AutoMapper.LammpsSearchFuncs import element_atomID_dict
+from AutoMapper.AtomObjectBuilder import build_atom_objects
 
 def map_processor(directory, preDataFileName, postDataFileName, preMoleculeFileName, postMoleculeFileName, preBondingAtoms, postBondingAtoms, deleteAtoms, elementsByType, createAtoms, debug=False):
-    # Set log level
+    # 设置日志级别
     if debug:
         logging.basicConfig(level='DEBUG')
     else:
         logging.basicConfig(level='INFO')
     
-    # Split delete atoms list, if given
+    # 分割删除原子列表（如果提供）
     if deleteAtoms is not None:
-        assert len(deleteAtoms) % 2 == 0, 'Error: Different numbers of delete atom IDs for pre- and post-bond supplied.'
+        assert len(deleteAtoms) % 2 == 0, '错误：为反应前和反应后提供的删除原子ID数量不同。'
         deleteAtomIndex = len(deleteAtoms) // 2
         preDeleteAtoms = deleteAtoms[:deleteAtomIndex]
         postDeleteAtoms = deleteAtoms[deleteAtomIndex:]
@@ -49,20 +47,20 @@ def map_processor(directory, preDataFileName, postDataFileName, preMoleculeFileN
         preDeleteAtoms = None
         postDeleteAtoms = None
     
-    # Initial molecule creation
-    with restore_dir(): # Allows for relative directory usage
+    # 初始分子创建
+    with restore_dir(): # 允许使用相对目录
         lammps_to_molecule(directory, preDataFileName, preMoleculeFileName, preBondingAtoms, deleteAtoms=preDeleteAtoms)
     
     with restore_dir():
         lammps_to_molecule(directory, postDataFileName, postMoleculeFileName, postBondingAtoms, deleteAtoms=postDeleteAtoms)
 
-    # Initial map creation
+    # 初始映射创建
     with restore_dir():
         mappedIDList = map_from_path(directory, preMoleculeFileName, postMoleculeFileName, elementsByType, debug, preBondingAtoms, preDeleteAtoms, postBondingAtoms, postDeleteAtoms, createAtoms)
 
-    # Cut map down to smallest possible partial structure
+    # 将映射裁剪为最小可能的部分结构
     with restore_dir():
-        # Load data from just created files
+        # 从刚创建的文件加载数据
         os.chdir(directory)
         preElementDict = element_atomID_dict(preMoleculeFileName, elementsByType)
         postElementDict = element_atomID_dict(postMoleculeFileName, elementsByType)
@@ -70,105 +68,105 @@ def map_processor(directory, preDataFileName, postDataFileName, preMoleculeFileN
         preAtomObjectDict = build_atom_objects(preMoleculeFileName, preElementDict, preBondingAtoms)
         postAtomObjectDict = build_atom_objects(postMoleculeFileName, postElementDict, postBondingAtoms, createAtoms=createAtoms) 
 
-    # Determine if bonding atom is part of a cycle, and if so what atoms make up the cycle and their neighbours 
-    prePreservedAtomIDs = is_cyclic(preAtomObjectDict, preBondingAtoms, 'Pre-bond')
-    postPreservedAtomIDs = is_cyclic(postAtomObjectDict, postBondingAtoms, 'Post-bond')
+    # 确定成键原子是否是环的一部分，如果是，确定哪些原子构成环及其邻居
+    prePreservedAtomIDs = is_cyclic(preAtomObjectDict, preBondingAtoms, '反应前')
+    postPreservedAtomIDs = is_cyclic(postAtomObjectDict, postBondingAtoms, '反应后')
     
-    # Determine atoms to be kept if reaction is a ring opening
+    # 确定如果反应是开环反应需要保留的原子
     prePartialAtomsSet, postPartialAtomsSet = is_ring_opening(prePreservedAtomIDs, postPreservedAtomIDs, mappedIDList)
 
-    # Keep atoms up to 4 bonds away from the bonding atoms
+    # 保留距离成键原子最多4个键的原子
     prePartialAtomsSet = keep_all_neighbours(preAtomObjectDict, preBondingAtoms, prePartialAtomsSet)
     postPartialAtomsSet = keep_all_neighbours(postAtomObjectDict, postBondingAtoms, postPartialAtomsSet)
 
-    # Keep delete atoms
+    # 保留删除原子
     if preDeleteAtoms is not None:
         prePartialAtomsSet.update(preDeleteAtoms)
         postPartialAtomsSet.update(postDeleteAtoms)
 
-    # Keep create atoms in the post atom set
+    # 在后原子集中保留创建原子
     if createAtoms is not None:
         postPartialAtomsSet.update(createAtoms)
 
-    # Find initial pre-bond edge atoms
+    # 查找初始反应前边缘原子
     preEdgeAtoms = find_edge_atoms(preAtomObjectDict, prePartialAtomsSet)
 
-    # Check the edges aren't too close to atoms that change type
+    # 检查边缘是否太靠近类型变化的原子
     preExtendEdgeDict = verify_edge_atoms(preEdgeAtoms, mappedIDList, preAtomObjectDict, postAtomObjectDict)
 
-    # Update mapped list and partial atom sets if edge atoms need extending
+    # 如果边缘原子需要扩展，则更新映射列表和部分原子集
     mappedIDList, prePartialAtomsSet, postPartialAtomsSet = extend_edge_atoms(preExtendEdgeDict, mappedIDList, preAtomObjectDict, postAtomObjectDict, prePartialAtomsSet, postPartialAtomsSet)
     
-    # Refind edge atoms after potential extension
+    # 在可能的扩展后重新查找边缘原子
     preEdgeAtoms = find_edge_atoms(preAtomObjectDict, prePartialAtomsSet)
 
-    # Check for and get byproduct atoms that aren't deleteIDs
+    # 检查并获取不是deleteIDs的副产物原子
     postAtomByproducts = get_byproducts(postAtomObjectDict, postBondingAtoms)
     if postAtomByproducts is not None:
-        logging.debug(f'Byproducts found. Byproducts are {postAtomByproducts} (post IDs)')
+        logging.debug(f'找到副产物。副产物是 {postAtomByproducts}（后ID）')
         postPartialAtomsSet.update(postAtomByproducts)
 
-    # Order mappedIDList by preAtomID
+    # 按preAtomID排序mappedIDList
     mappedIDList = natsorted(mappedIDList, key=lambda x: x[0])
 
-    # Create empty partialMappedIDList to fill the return
+    # 创建空的partialMappedIDList以填充返回值
     partialMappedIDList = []
 
-    # Renumber map if the partial structure has a different length to the full structure
-    # If they're equal then just output the map, no changes needed
+    # 如果部分结构与完整结构长度不同，则重新编号映射
+    # 如果它们相等，则只输出映射，不需要更改
     if len(prePartialAtomsSet) != len(preAtomObjectDict):
-        logging.debug(f'Creating a partial map.')
-        # Build a partial map and get the renumbering dictionaries
+        logging.debug(f'创建部分映射。')
+        # 构建部分映射并获取重新编号字典
         mappedIDList, preRenumberdAtomDict, postRenumberedAtomDict, partialMappedIDList = create_partial_map(mappedIDList, prePartialAtomsSet, postPartialAtomsSet)
 
-        # Renumber key features for molecule creation and output
+        # 重新编号分子创建和输出的关键特征
         preBondingAtoms = renumber(preBondingAtoms, preRenumberdAtomDict)
         preDeleteAtoms = renumber(preDeleteAtoms, preRenumberdAtomDict)
 
         postBondingAtoms = renumber(postBondingAtoms, postRenumberedAtomDict)
         postDeleteAtoms = renumber(postDeleteAtoms, postRenumberedAtomDict)
 
-        # Renumber edge atoms if any given
+        # 如果有边缘原子，则重新编号
         if preEdgeAtoms is not None:
             preEdgeAtoms = renumber(preEdgeAtoms, preRenumberdAtomDict)
 
-        # If create atoms are included, figure out the renumberedAtomDict and then renumber
+        # 如果包含创建原子，则确定重新编号的原子字典并重新编号
         if createAtoms is not None:
-            IDCounter = max([int(val) for val in postRenumberedAtomDict.values()]) # Initialise counter as highest ID of renumbered atoms
+            IDCounter = max([int(val) for val in postRenumberedAtomDict.values()]) # 将计数器初始化为重新编号原子的最高ID
 
-            # Extend renumberedAtomDict for createAtoms
+            # 为createAtoms扩展重新编号的原子字典
             for createAtom in createAtoms:
                 IDCounter += 1
                 postRenumberedAtomDict[createAtom] = str(IDCounter)
 
-            # Renumber createAtoms with the new renumberedAtomDict
+            # 使用新的重新编号原子字典重新编号createAtoms
             createAtoms = renumber(createAtoms, postRenumberedAtomDict)
 
 
-        # Rebuild molecule files with partial structure
+        # 使用部分结构重建分子文件
         with restore_dir():
             lammps_to_molecule(directory, preDataFileName, preMoleculeFileName, preBondingAtoms, deleteAtoms=preDeleteAtoms, validIDSet=prePartialAtomsSet, renumberedAtomDict=preRenumberdAtomDict)
 
         with restore_dir():
             lammps_to_molecule(directory, postDataFileName, postMoleculeFileName, postBondingAtoms, deleteAtoms=postDeleteAtoms, validIDSet=postPartialAtomsSet, renumberedAtomDict=postRenumberedAtomDict)
 
-    # Output the map file
+    # 输出映射文件
     with restore_dir():
         os.chdir(directory)
         outputData = output_map(mappedIDList, preBondingAtoms, preEdgeAtoms, preDeleteAtoms, createAtoms)
         save_text_file('automap.data', outputData)
 
-    # Returns mappedIDList for other functions to use e.g. testing
+    # 返回mappedIDList供其他函数使用，例如测试
     return [mappedIDList, partialMappedIDList]
 
 def output_map(mappedIDList, preBondingAtoms, preEdgeAtoms, preDeleteAtoms, createAtoms):
-    # Bonding atoms
+    # 成键原子
     bondingAtoms = [['\n', 'BondingIDs', '\n']]
     for atom in preBondingAtoms:
         bondingAtoms.extend([[atom]])
     bondingAtoms.extend(['\n'])
 
-    # Delete Atoms
+    # 删除原子
     deleteIDCount = []
     deleteAtoms = []
     if preDeleteAtoms is not None:
@@ -178,7 +176,7 @@ def output_map(mappedIDList, preBondingAtoms, preEdgeAtoms, preDeleteAtoms, crea
             deleteAtoms.extend([[atom]])
         deleteAtoms.extend(['\n'])
 
-    # Edge Atoms
+    # 边缘原子
     edgeIDCount = []
     edgeAtoms = []
     if preEdgeAtoms is not None:
@@ -188,7 +186,7 @@ def output_map(mappedIDList, preBondingAtoms, preEdgeAtoms, preDeleteAtoms, crea
             edgeAtoms.extend([[atom]])
         edgeAtoms.extend(['\n'])
 
-    # Create Atoms
+    # 创建原子
     createIDCount = []
     outputCreateAtoms = []
     if createAtoms is not None:
@@ -198,13 +196,13 @@ def output_map(mappedIDList, preBondingAtoms, preEdgeAtoms, preDeleteAtoms, crea
             outputCreateAtoms.extend([[atom]])
         outputCreateAtoms.extend(['\n'])
 
-    # Equivalences
-    equivalences = [['#This is an AutoMapper generated map\n'], [str(len(mappedIDList)) + ' equivalences']]
+    # 等价关系
+    equivalences = [['#这是由AutoMapper生成的映射\n'], [str(len(mappedIDList)) + ' equivalences']]
     equivalenceAtoms = [['Equivalences', '\n']]
     for atomPair in mappedIDList:
         equivalenceAtoms.extend([[atomPair[0] + '\t' + atomPair[1]]])
 
-    # Output data
+    # 输出数据
     output = []
     totalOutput = [equivalences, deleteIDCount, edgeIDCount, createIDCount, bondingAtoms, deleteAtoms, edgeAtoms, outputCreateAtoms, equivalenceAtoms]
 
@@ -213,7 +211,7 @@ def output_map(mappedIDList, preBondingAtoms, preEdgeAtoms, preDeleteAtoms, crea
 
     return output
 
-# Utility for moving to a different os path and then returning to the original directory
+# 用于移动到不同的操作系统路径然后返回原始目录的实用程序
 @contextlib.contextmanager
 def restore_dir():
     startDir = os.getcwd()
@@ -223,18 +221,18 @@ def restore_dir():
         os.chdir(startDir)
 
 def bfs(graph, startAtom, endAtom, breakLink=False):
-    # Adapted from https://stackoverflow.com/questions/8922060/how-to-trace-the-path-in-a-breadth-first-search
-    # List to track if an atomID has already been seen
+    # 改编自 https://stackoverflow.com/questions/8922060/how-to-trace-the-path-in-a-breadth-first-search
+    # 用于跟踪atomID是否已被看到的列表
     discovered = {key: False for key in graph.keys()}
 
     discovered[startAtom] = True
 
     newGraph = deepcopy(graph)
-     # Break link between start atom and target atom if present - stops search going backwards when searching for cycles
+     # 如果存在，则断开起始原子和目标原子之间的链接 - 在搜索循环时防止搜索向后进行
     if breakLink:
         newGraph[startAtom].remove(endAtom)
 
-    # Iterate through paths whilst keeping a record of all paths
+    # 迭代路径同时保持所有路径的记录
     queue = []
 
     queue.append([startAtom])
@@ -242,47 +240,47 @@ def bfs(graph, startAtom, endAtom, breakLink=False):
     while queue:
         path = queue.pop(0)
         
-        # Get latest path element
+        # 获取最新的路径元素
         node = path[-1]
 
         if node == endAtom:
             return path
 
         for neighbour in newGraph.get(node, []):
-            # Prevents path getting stuck in a loop
+            # 防止路径陷入循环
             if discovered[neighbour]:
                 continue
             
-            # Increase the path by next neighbour and add to queue
+            # 通过下一个邻居增加路径并添加到队列
             discovered[neighbour] = True
             newPath = list(path)
             newPath.append(neighbour)
             queue.append(newPath)
     
-    # If here then no path was found
+    # 如果到达这里，则未找到路径
     return None
 
 def is_cyclic(atomObjectDict, bondingAtoms, reactionType):
-    # Create dictionary of adjacent bonds - IMPROVEMENT: Remove H from adjacent bonds since they can't go anywhere
+    # 创建相邻键的字典 - 改进：从相邻键中移除H，因为它们不能去任何地方
     moleculeGraph = {atom.atomID: atom.firstNeighbourIDs for atom in atomObjectDict.values()}
-    preservedAtomIDs = {} # With respect to each bonding atom
+    preservedAtomIDs = {} # 相对于每个成键原子
 
     for bondingAtom in bondingAtoms:
-        # Get starting neighbours
+        # 获取起始邻居
         startNeighbours = atomObjectDict[bondingAtom].firstNeighbourIDs
 
-        # Setup preservedAtomIDs
+        # 设置preservedAtomIDs
         preservedAtomIDs[bondingAtom] = None
         
-        # Iterate through neighbours until a cycle is found
+        # 迭代邻居直到找到一个循环
         for startAtom in startNeighbours:
             cyclicPath = bfs(moleculeGraph, startAtom, bondingAtom, breakLink=True)
 
             if cyclicPath is not None:
-                logging.debug(f'Cycle found: {cyclicPath}. Started with {startAtom} for the {reactionType} reaction.')
+                logging.debug(f'找到循环：{cyclicPath}。从{startAtom}开始，用于{reactionType}反应。')
                 break
 
-        # Found path will be converted to a set of atomIDs that need to be preserved
+        # 找到的路径将被转换为需要保留的atomID集合
         if cyclicPath is not None:
             preservedIDsSet = set()
             for atomID in cyclicPath:
@@ -294,37 +292,37 @@ def is_cyclic(atomObjectDict, bondingAtoms, reactionType):
     return preservedAtomIDs
 
 def find_mapped_pair(preAtom, mappedIDList):
-    # Get the post atom from the map for a given preAtom
+    # 从映射中获取给定preAtom的post原子
     for pair in mappedIDList:
         if pair[0] == preAtom:
             return pair[1]
 
 def is_ring_opening(prePreservedAtomIDs, postPreservedAtomIDs, mappedIDList):
     '''
-    Determine if a reaction is a ring opening polymerisation.
-    Return two dicts of bonding atoms keys and preserved atom sets.
+    确定反应是否是开环聚合反应。
+    返回两个字典，包含成键原子键和保留的原子集。
     '''
 
-    # Init dicts for storing rings
+    # 初始化用于存储环的字典
     preCyclicAtomsSet = set()
     postCyclicAtomsSet = set()
 
     for preBondingAtom, prePreservedIDSet in prePreservedAtomIDs.items():
         
-        # If preBondingAtom is cyclic (not None), get the post bonding atom
+        # 如果preBondingAtom是环状的（不是None），获取post成键原子
         if prePreservedIDSet is not None:
             postBondingAtom = find_mapped_pair(preBondingAtom, mappedIDList)
 
-            # If post bonding atom is not cyclic, ring opening polymerisation is presumed
+            # 如果post成键原子不是环状的，则假定为开环聚合反应
             if postPreservedAtomIDs[postBondingAtom] is None:
-                logging.debug(f'Reaction has been determined as ring opening.')
+                logging.debug(f'反应被确定为开环反应。')
 
-                # Store pre bond data
+                # 存储pre键数据
                 preCyclicAtomsSet.add(preBondingAtom)
                 preCyclicAtomsSet.update(prePreservedIDSet)
 
-                # Get post bond data from map and store
-                # This is done as the postPreservedAtomsIDs for a ring opening reaction will be None
+                # 从映射获取post键数据并存储
+                # 这样做是因为开环反应的postPreservedAtomsIDs将为None
                 postCyclicAtomsSet.add(postBondingAtom)
                 for preCyclicAtom in prePreservedIDSet:
                     postCyclicAtom = find_mapped_pair(preCyclicAtom, mappedIDList)
@@ -334,13 +332,13 @@ def is_ring_opening(prePreservedAtomIDs, postPreservedAtomIDs, mappedIDList):
 
 def keep_all_neighbours(atomObjectDict, bondingAtoms, partialAtomSet):
     for bondingAtom in bondingAtoms:
-        # Add bonding atom to the set in case it isn't there already
+        # 添加成键原子到集合中，以防它尚未存在
         partialAtomSet.add(bondingAtom)
 
-        # Get atom object
+        # 获取原子对象
         atomObject = atomObjectDict[bondingAtom]
 
-        # Add neighbourIDs to the partial set
+        # 将neighbourIDs添加到部分集合中
         partialAtomSet.update(atomObject.firstNeighbourIDs)
         partialAtomSet.update(atomObject.secondNeighbourIDs)
         partialAtomSet.update(atomObject.thirdNeighbourIDs)
@@ -348,42 +346,42 @@ def keep_all_neighbours(atomObjectDict, bondingAtoms, partialAtomSet):
     return partialAtomSet
 
 def create_partial_map(mappedIDList, prePartialAtomsSet, postPartialAtomsSet):
-    # Remove all the IDs that aren't in the pre and post partial atom sets
+    # 移除不在pre和post部分原子集中的ID
     partialMappedIDList = []
     for pair in mappedIDList:
         if pair[0] in prePartialAtomsSet and pair[1] in postPartialAtomsSet:
             partialMappedIDList.append(pair)
         
-        # If something is present one set it must be present in the other set
+        # 如果某物在一个集合中存在，它必须在另一个集合中存在
         if pair[0] in prePartialAtomsSet and pair[1] not in postPartialAtomsSet:
-            print(f'Warning: Pre atom {pair[0]} is present but post atom {pair[1]} missing')
+            print(f'警告：Pre原子{pair[0]}存在但Post原子{pair[1]}缺失')
         if pair[0] not in prePartialAtomsSet and pair[1] in postPartialAtomsSet:
-            print(f'Warning: Pre atom {pair[0]} is missing but post atom {pair[1]} present')
+            print(f'警告：Pre原子{pair[0]}缺失但Post原子{pair[1]}存在')
 
-        # Debug tools
+        # 调试工具
         # if pair[0] not in prePartialAtomsSet:
-        #     print(f'Pre atom {pair[0]} not in partial atoms')
+        #     print(f'Pre原子{pair[0]}不在部分原子中')
         # if pair[1] not in postPartialAtomsSet:
-        #     print(f'Post atom {pair[1]} not in partial atoms')
+        #     print(f'Post原子{pair[1]}不在部分原子中')
 
     preRenumberedAtomDict = {}
     postRenumberedAtomDict = {}
     renumberedMappedIDList = []
-    # Simply renumber the pre and post atoms based on their position in the ID list
+    # 简单地根据它们在ID列表中的位置重新编号pre和post原子
     for index, pair in enumerate(partialMappedIDList, start=1):
         preRenumberedAtomDict[pair[0]] = str(index)
         postRenumberedAtomDict[pair[1]] = str(index)
         renumberedMappedIDList.append([str(index), str(index)])
 
-    # Assert that the same number of atoms is in pre and post dicts. Lammps will fail otherwise
-    assert len(preRenumberedAtomDict) == len(postRenumberedAtomDict), 'Different numbers of atoms have been found in the pre- and post-bond partial structures.\n Please check your input files, raise an issue on Github if the problem persists.'
+    # 断言pre和post字典中的原子数量相同。否则Lammps将失败
+    assert len(preRenumberedAtomDict) == len(postRenumberedAtomDict), '在反应前和反应后的部分结构中发现了不同数量的原子。\n请检查您的输入文件，如果问题仍然存在，请在Github上提出问题。'
 
     return renumberedMappedIDList, preRenumberedAtomDict, postRenumberedAtomDict, partialMappedIDList
 
 def renumber(inputList, renumberedAtomDict):
     '''
-    Take list of numbers and conversion dict as input.
-    Output list of converted numbers in same order. Return None if input is None
+    接受数字列表和转换字典作为输入。
+    输出相同顺序的转换后的数字列表。如果输入为None，则返回None
     '''
     if inputList is None:
         return None
@@ -397,31 +395,31 @@ def renumber(inputList, renumberedAtomDict):
 def find_edge_atoms(atomObjectDict, partialAtomSet):
     edgeAtoms = []
     for atom in partialAtomSet:
-        # Skip H atoms as they can't be edge atoms
+        # 跳过H原子，因为它们不能是边缘原子
         if atomObjectDict[atom].element == 'H':
             continue
         
-        # Iterate through first neighbours and check they're all in the partial atom set
+        # 迭代第一个邻居并检查它们是否都在部分原子集中
         for neighbour in atomObjectDict[atom].firstNeighbourIDs:
-            # If one neighbour is not in the partial atom set, atom must be an edge
+            # 如果一个邻居不在部分原子集中，则原子必须是边缘
             if neighbour not in partialAtomSet:
                 edgeAtoms.append(atom)
                 break
 
     if len(edgeAtoms) > 0:
         return edgeAtoms
-    else: # If no edge atoms in molecule then other functions expect None
+    else: # 如果分子中没有边缘原子，则其他函数期望None
         return None
 
 def verify_edge_atoms(preEdgeAtoms, mappedIDList, preAtomObjectDict, postAtomObjectDict):
-    # If no edge atoms are given, return an empty extend list
+    # 如果没有给出边缘原子，则返回一个空的扩展列表
     if preEdgeAtoms is None:
         return {}
 
-    # Convert mappedIDList to mappedIDDict
+    # 将mappedIDList转换为mappedIDDict
     mappedIDDict = {pair[0]: pair[1] for pair in mappedIDList}
 
-    # Compare if pre and post atom types are the same, return True if they are not
+    # 比较pre和post原子类型是否相同，如果不同则返回True
     def compare_atom_type(preAtom):
         preAtomType = preAtomObjectDict[preAtom].atomType
         pairAtom = mappedIDDict[preAtom]
@@ -432,17 +430,17 @@ def verify_edge_atoms(preEdgeAtoms, mappedIDList, preAtomObjectDict, postAtomObj
         else:
             return False
 
-    # Check for atom type changes too close to edge atoms
+    # 检查原子类型变化是否太靠近边缘原子
     extendDistanceDict = {}
     for edgeAtom in preEdgeAtoms:
-        # Edge atom
+        # 边缘原子
         stopSearch = compare_atom_type(edgeAtom)
 
         if stopSearch:
             extendDistanceDict[edgeAtom] = 3
             continue
 
-        # First neighbours
+        # 第一个邻居
         preEdgeAtomObject = preAtomObjectDict[edgeAtom]
         for firstNeighbour in preEdgeAtomObject.firstNeighbourIDs:
             
@@ -452,8 +450,8 @@ def verify_edge_atoms(preEdgeAtoms, mappedIDList, preAtomObjectDict, postAtomObj
                 extendDistanceDict[edgeAtom] = 2
                 break
 
-        # Second neighbours
-        if stopSearch: continue # Prevents second neighbours running and overwriting the result from first neighbours
+        # 第二个邻居
+        if stopSearch: continue # 防止第二个邻居运行并覆盖第一个邻居的结果
         for secondNeighbour in preEdgeAtomObject.secondNeighbourIDs:
             stopSearch = compare_atom_type(secondNeighbour)
             
@@ -464,20 +462,20 @@ def verify_edge_atoms(preEdgeAtoms, mappedIDList, preAtomObjectDict, postAtomObj
     return extendDistanceDict
 
 def extend_edge_atoms(extendEdgeDict, mappedIDList, preAtomObjectDict, postAtomObjectDict, prePartialAtomsSet, postPartialAtomsSet):
-    # Output extended mappedIDList, pre and post partial atom sets. Rerun find_edge_atoms to get new edges.
-    # If an edge is in this list, it at least needs to be extended by one
+    # 输出扩展的mappedIDList，pre和post部分原子集。重新运行find_edge_atoms以获取新边缘。
+    # 如果一个边缘在这个列表中，它至少需要扩展一个
     additionalPreAtoms = []
     additionalPostAtoms = []
 
     for preEdge, extendDist in extendEdgeDict.items():
-        # For pre-bond
+        # 对于pre-bond
         additionalPreAtoms.extend(preAtomObjectDict[preEdge].firstNeighbourIDs)
 
-        # For post-bond
+        # 对于post-bond
         postEdge = find_mapped_pair(preEdge, mappedIDList)
         additionalPostAtoms.extend(postAtomObjectDict[postEdge].firstNeighbourIDs)
 
-        # When further away neighbours are required
+        # 当进一步邻居被要求
         if extendDist == 2:
             additionalPreAtoms.extend(preAtomObjectDict[preEdge].secondNeighbourIDs)
             additionalPostAtoms.extend(postAtomObjectDict[postEdge].secondNeighbourIDs)
@@ -486,24 +484,24 @@ def extend_edge_atoms(extendEdgeDict, mappedIDList, preAtomObjectDict, postAtomO
             additionalPreAtoms.extend(preAtomObjectDict[preEdge].thirdNeighbourIDs)
             additionalPostAtoms.extend(postAtomObjectDict[postEdge].thirdNeighbourIDs)            
         
-    # Expand the mappedIDList
+    # 扩展mappedIDList
     for preAtom in additionalPreAtoms:
-        # Could be done using the additionalPostAtoms list but this is easier
+        # 可以使用additionalPostAtoms列表完成，但这更容易
         postAtom = find_mapped_pair(preAtom, mappedIDList)
-        if [preAtom, postAtom] not in mappedIDList: # Prevents repeat mapped pairs being added
+        if [preAtom, postAtom] not in mappedIDList: # 防止添加重复的映射对
             mappedIDList.append([preAtom, postAtom])
 
-    # Update the partial atom sets
+    # 更新部分原子集
     prePartialAtomsSet.update(additionalPreAtoms)
     postPartialAtomsSet.update(additionalPostAtoms)
 
     return mappedIDList, prePartialAtomsSet, postPartialAtomsSet
 
 def get_byproducts(postAtomObjectDict, postBondingAtoms):
-    # Determine if there is a path from each post atom to a bonding atom in the post structure
-    # If no path is present then atom must be from a byproduct that's not being deleted
+    # 确定post结构中是否有从每个post原子到成键原子的路径
+    # 如果没有路径存在，则原子必须来自不被删除的副产物
     byproducts = []
-    targetBondingAtom = postBondingAtoms[0] # Only need one atom, as it will be bound to the other one
+    targetBondingAtom = postBondingAtoms[0] # 只需要一个原子，因为它将与另一个原子绑定
     moleculeGraph = {atom.atomID: atom.firstNeighbourIDs for atom in postAtomObjectDict.values()}
     for startAtom in postAtomObjectDict.keys():
         pathToBondingAtom = bfs(moleculeGraph, startAtom, targetBondingAtom, breakLink=False)

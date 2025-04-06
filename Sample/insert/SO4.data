@@ -1,0 +1,59 @@
+LAMMPS Atom File Created by AuToFF
+
+     5 atoms
+     4 bonds
+     6 angles
+     0 dihedrals
+     0 impropers
+
+     2 atom types
+     1 bond types
+     1 angle types
+     0 dihedral types
+     0 improper types
+
+     0.57290    20.57290  xlo xhi
+    -1.26160    18.73840  ylo yhi
+    -1.46010    18.53990  zlo zhi
+
+Masses
+
+1      32.0600  # s6
+2      16.0000  # o
+
+Pair Coeffs  # lj/cut/coul/long
+
+1     0.282400   3.532413
+2     0.146300   3.048121
+
+Bond Coeffs  # harmonic
+
+1       683.000000      1.450000
+
+Angle Coeffs  # harmonic
+
+1       128.200048    120.050000
+
+Atoms
+#  atom  mol    type   charge         X           Y           Z
+     1     1     1      1.543000      1.065900     -0.068100     -0.070700
+     2     1     2     -0.885800      0.572900     -0.087300     -1.460100
+     3     1     2     -0.885700      0.572900     -1.261600      0.640600
+     4     1     2     -0.885700      0.572900      1.144700      0.607300
+     5     1     2     -0.885800      2.540000     -0.068100     -0.070700
+
+Bonds
+#     NO.    Type  atom_i  atom_j
+       1       1       1       2
+       2       1       1       3
+       3       1       1       4
+       4       1       1       5
+
+Angles
+#     NO.    Type  atom_i  atom_j  atom_k
+       1       1       2       1       3
+       2       1       2       1       4
+       3       1       2       1       5
+       4       1       3       1       4
+       5       1       3       1       5
+       6       1       4       1       5

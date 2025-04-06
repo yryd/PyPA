@@ -1,0 +1,34 @@
+
+read_restart    "xlink_Na2SO4$_end.rst"
+
+fix             file_balance_out all print 100 "$(step) $(density) $(time) $(temp)" file "balance_Na2SO4$.log" title "step density time T"
+fix             relax_md all npt temp 298.15 298.15 100.0 x 1.0 1.0 1000 y 1.0 1.0 1000
+# 500ps
+run             500000
+unfix           relax_md
+unfix           file_balance_out
+
+write_dump      PA xyz xlink_no_sol_balance_Na2SO4.xyz modify element C C H H H Cl N N O
+
+group           Na2SO4_sol subtract all PA
+
+dump            dump_sol_press all xyz 10000 dump_sol_press.xyz
+dump_modify     dump_xlink element H H O O C N H S O H Na
+
+dump            dump_sol_press_custom all custom 10000 dump_sol_press.custom id type q x y z
+
+dump            dump_sol_press_dcd all dcd 10000 dump_sol_press.dcd
+
+dump            dump_Na2SO4_press_dcd Na2SO4 dcd 1000 dump_Na2SO4_press.dcd
+dump            dump_H2O_press_dcd water dcd 1000 dump_H2O_press.dcd
+
+fix             zwalls PA wall/reflect zhi EDGE
+fix             file_press_out all print 100 "$(step) $(density) $(press) $(time) $(temp)" file "press_Na2SO4$.log" title "step density P time T"
+fix             Z_force water 0.0 0.0 3.0
+fix             press_md all npt temp 298.15 298.15 100.0 x 1.0 1.0 1000 y 1.0 1.0 1000 z 1.0 1.0 1000
+run             500000
+unfix           press_md
+unfix           file_press_out
+unfix           Z_force
+
+quit

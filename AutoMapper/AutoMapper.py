@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 ##############################################################################
-# Developed by: Matthew Bone
-# Last Updated: 03/08/2021
-# Updated by: Matthew Bone
+# 开发者: Matthew Bone
+# 最后更新: 03/08/2021
+# 更新者: Matthew Bone
 #
-# Contact Details:
+# 联系方式:
 # Bristol Composites Institute (BCI)
 # Department of Aerospace Engineering - University of Bristol
 # Queen's Building - University Walk
@@ -12,84 +12,83 @@
 # U.K.
 # Email - matthew.bone@bristol.ac.uk
 #
-# File Description:
-# This wrapper is used to call all the AutoMapper family of tools from a command
-# line. Linux users can consider adding the location of this repo to their PATH
-# so that this wrapper can be called from anywhere.
+# 文件描述:
+# 此包装器用于从命令行调用所有 AutoMapper 系列工具。
+# Linux 用户可以考虑将此仓库的位置添加到他们的 PATH 中，
+# 这样就可以从任何位置调用此包装器。
 ##############################################################################
 
 import sys
-# Check python version
+# 检查 Python 版本
 pythonVersion = sys.version_info
-if pythonVersion[0] == 2: # Python 2 check - might be needless due to the shebang
-    print('This script is not compatible with Python 2. Please update to Python 3.6+')
+if pythonVersion[0] == 2: # Python 2 检查 - 由于 shebang 可能不需要
+    print('此脚本不兼容 Python 2。请升级到 Python 3.6+')
     sys.exit()
 
-if pythonVersion[0] == 3 and pythonVersion[1] < 6: # Note on earlier versions of Python 3
-    print('Note: This code uses insertion ordered dictionaries which were added in Python 3.6. AutoMapper may work with earlier versions of Python 3 but results may vary.')
+if pythonVersion[0] == 3 and pythonVersion[1] < 6: # 关于早期 Python 3 版本的说明
+    print('注意：此代码使用 Python 3.6 添加的插入顺序字典。AutoMapper 可能在早期 Python 3 版本中工作，但结果可能有所不同。')
 
-# Check that natsort is installed
+# 检查是否安装了 natsort
 try:
     import natsort
 except ModuleNotFoundError:
-    print('The package natsort was not found in the Python modules. Please install natsort before continuing.')
+    print('在 Python 模块中未找到 natsort 包。请继续之前安装 natsort。')
     sys.exit()
 
 import argparse
-from LammpsUnifiedCleaner import file_unifier
-from LammpsToMolecule import lammps_to_molecule
-from MapProcessor import map_processor
+from AutoMapper.LammpsUnifiedCleaner import file_unifier
+from AutoMapper.LammpsToMolecule import lammps_to_molecule
+from AutoMapper.MapProcessor import map_processor
 
-# Init the parser
-parser = argparse.ArgumentParser(description='Run preprocessing tools for LAMMPS simulation using fix bond/react')
+# 初始化解析器
+parser = argparse.ArgumentParser(description='运行预处理工具用于 LAMMPS 模拟，使用 fix bond/react')
 
-# List of arguments for command line
-parser.add_argument('directory', metavar='directory', type=str, nargs=1, help='Directory of file(s), can be found in bash with . or $PWD')
-parser.add_argument('tool', metavar='tool', type=str, nargs=1, choices=['clean', 'molecule', 'map'], help='Name of tool to be used. Possible tools: clean, molecule, map')
-parser.add_argument('data_files', metavar='data_files', nargs='+', help='Name of file(s) to be acted on. If tool is "map" then this must be two files ordered as pre-bond post-bond. If "clean" this can be a list of files in any order')
-parser.add_argument('--coeff_file', metavar='coeff_file', nargs=1, help='Argument for the "clean" tool: a coefficients file to be cleaned')
-parser.add_argument('--save_name', metavar='save_name', nargs='+', help='Argument for "molecule" and "map" tools: the file name of the new file(s)')
-parser.add_argument('--ba', metavar='bonding_atoms', nargs='+', help='Argument for the "map" tool: atom IDs of the atoms that will be involved in creating a new bond, separated by a space. Order of atoms must be the same between molecule files when mapping.')
-parser.add_argument('--ebt', metavar='elements_by_type', nargs='+', help='Argument for the "map" tools: series of elements symbols in the same order as the types specified in the data file and separated with a space')
-parser.add_argument('--da', metavar='delete_atoms', nargs='+', help='An optional argument for the "map" tool: atom IDs of the atoms that will be deleted after the bond has formed, separated by a space')
-parser.add_argument('--debug', action='store_true', help='An optional argument for the "map" tool: prints debugging statements with information on the path search and map processor.')
-parser.add_argument('--ca', metavar='create_atoms', nargs='+', help='An optional argument for the "map" tool: atom IDs of the atoms that will be created after the bond has formed, separated by a space')
+# 命令行参数列表
+parser.add_argument('directory', metavar='directory', type=str, nargs=1, help='文件目录，可在 bash 中使用 . 或 $PWD 找到')
+parser.add_argument('tool', metavar='tool', type=str, nargs=1, choices=['clean', 'molecule', 'map'], help='要使用的工具名称。可选工具: clean, molecule, map')
+parser.add_argument('data_files', metavar='data_files', nargs='+', help='要操作的文件名。如果工具是 "map" 则必须按反应前-反应后顺序提供两个文件。如果是 "clean" 可以是任意顺序的文件列表')
+parser.add_argument('--coeff_file', metavar='coeff_file', nargs=1, help='"clean" 工具参数: 要清理的系数文件')
+parser.add_argument('--save_name', metavar='save_name', nargs='+', help='"molecule" 和 "map" 工具参数: 新文件的文件名')
+parser.add_argument('--ba', metavar='bonding_atoms', nargs='+', help='"map" 工具参数: 将参与创建新键的原子ID，用空格分隔。映射时分子文件之间的原子顺序必须相同')
+parser.add_argument('--ebt', metavar='elements_by_type', nargs='+', help='"map" 工具参数: 元素符号序列，顺序与数据文件中指定的类型相同，用空格分隔')
+parser.add_argument('--da', metavar='delete_atoms', nargs='+', help='"map" 工具可选参数: 键形成后将被删除的原子ID，用空格分隔')
+parser.add_argument('--debug', action='store_true', help='"map" 工具可选参数: 打印调试语句，包含路径搜索和映射处理器的信息')
+parser.add_argument('--ca', metavar='create_atoms', nargs='+', help='"map" 工具可选参数: 键形成后将被创建的原子ID，用空格分隔')
 
-# Get arguments from parser
+# 从解析器获取参数
 args = parser.parse_args()
-# Take compulsory args out of list - other args done later
+# 从列表中取出必需参数 - 其他参数稍后处理
 tool = args.tool[0]
 directory = args.directory[0]
 
-
-# Throw errors if arguments are missing from certain tools
+# 如果某些工具缺少参数则抛出错误
 if tool == 'clean' and (args.coeff_file is None):
-    parser.error('"clean" tool requries --coeff_file')
+    parser.error('"clean" 工具需要 --coeff_file 参数')
 
 if tool == 'molecule' and args.save_name is None:
-    parser.error('"molecule" tool requries --save_name argument')
+    parser.error('"molecule" 工具需要 --save_name 参数')
 
 if tool == 'molecule' and len(args.data_files) > 1:
-    parser.error('The molecule tool can only take 1 data_file as input')
+    parser.error('molecule 工具只能接受 1 个 data_file 作为输入')
 
 if tool == 'map' and (len(args.data_files) != 2 or len(args.save_name) != 2):
-    parser.error('The map tool requires 2 data_files and 2 save_names (for pre and post molecule files)')
+    parser.error('map 工具需要 2 个 data_files 和 2 个 save_names (用于反应前和反应后分子文件)')
 
 if tool == 'map' and (len(args.ba) < 4 or args.ebt is None):
-    parser.error('The map tool requires --ba (bonding atoms) with at least 4 atomIDs specified and --ebt (elements by type) arguments')
+    parser.error('map 工具需要 --ba (成键原子) 参数指定至少 4 个原子ID，以及 --ebt (按类型的元素) 参数')
 
-# Unified data file clean
+# 统一数据文件清理
 if tool == "clean":  
-    print(f'DataFiles List: {args.data_files}')
+    print(f'数据文件列表: {args.data_files}')
     file_unifier(directory, args.coeff_file[0], args.data_files)
 
-# Produce molecule data file
+# 生成分子数据文件
 elif tool == "molecule":
     lammps_to_molecule(directory, args.data_files[0], args.save_name[0])
 
-# Combined molecule and map creation code
+# 组合分子和映射创建代码
 elif tool == 'map':
     map_processor(directory, args.data_files[0], args.data_files[1], args.save_name[0], args.save_name[1], args.ba[:2], args.ba[2:], args.da, args.ebt, args.ca, args.debug)
 
-# Print message to show AutoMapper is complete
-print('AutoMapper Task Complete')
+# 打印消息显示 AutoMapper 已完成
+print('AutoMapper 任务完成')

@@ -17,9 +17,9 @@
 ##############################################################################
 
 import os
-from LammpsUnifiedCleaner import file_unifier
-from LammpsTreatmentFuncs import clean_data
-from LammpsSearchFuncs import get_data, find_sections
+from AutoMapper.LammpsUnifiedCleaner import file_unifier
+from AutoMapper.LammpsTreatmentFuncs import clean_data
+from AutoMapper.LammpsSearchFuncs import get_data, find_sections
 
 def test_unified_cleaner():
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'Test_Cases/Cleaner/Methane_Ethane/') # Allows for relative pathing in pytest

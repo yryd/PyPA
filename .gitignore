@@ -1,7 +1,13 @@
-# 忽略 logs 文件夹内的所有内容
+# 忽略 tmp 文件夹内的所有内容
 tmp/*
-# 保留 logs 文件夹本身
+# 保留 tmp 文件夹本身
 !tmp/.gitkeep
 
 __pycache__
 .vscode
+
+jiarui/*
+data2mol/*
+test/*
+onesys.py
+file_1.*

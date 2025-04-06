@@ -1,4 +1,5 @@
 # execute.py
+from AutoMapper.call_automapper import run_automapper_map
 
 import logging
 import os
@@ -131,7 +132,7 @@ def exec_AutoMapper_clean(data_PATH, map_PATH):
         os.chdir(tmp_PATH)
 
 
-def exec_AutoMapper(map_PATH, reaction_index_dicts_list, atom_ele_type_str):
+def exec_AutoMapper2(map_PATH, reaction_index_dicts_list, atom_ele_type_str):
     """生成映射模板文件。
     
     Args:
@@ -160,4 +161,50 @@ def exec_AutoMapper(map_PATH, reaction_index_dicts_list, atom_ele_type_str):
         logging.error(f"自动映射出错: {e}")
         raise
     finally:
+        os.chdir(tmp_PATH)
+
+def exec_AutoMapper(map_PATH, reaction_index_dicts_list, atom_ele_type_str):
+    """生成映射模板文件。
+    
+    Args:
+        map_PATH: 映射文件的路径。
+        data_PATH: 数据文件的路径。
+    """
+    # 保存当前工作目录
+    tmp_PATH = os.getcwd()
+    
+    try:
+        # 切换到映射目录
+        os.chdir(map_PATH)
+        
+        for index, reaction_index_dict in enumerate(reaction_index_dicts_list):
+            try:
+                logging.info(f"自动映射，处理第 {index} 个反应中...")
+                run_automapper_map(
+                    directory=".",  # 使用当前目录(已切换到map_PATH)
+                    pre_reaction_file="cleanedpre.data",
+                    post_reaction_file=f"cleanedpost_{index}.data",
+                    pre_save_name="pre_mol.data",
+                    post_save_name=f"post_{index}_mol.data",
+                    bonding_atoms=[
+                        str(reaction_index_dict['N_r']),
+                        str(reaction_index_dict['C_r']),
+                        str(reaction_index_dict['N_p']),
+                        str(reaction_index_dict['C_p'])
+                    ],
+                    elements_by_type=atom_ele_type_str.split(),
+                    delete_atoms=[
+                        str(reaction_index_dict['Cl_d']),
+                        str(reaction_index_dict['H_d']),
+                        str(reaction_index_dict['Cl_p']),
+                        str(reaction_index_dict['H_p'])
+                    ],
+                    debug=False
+                )
+            except Exception as e:
+                logging.error(f"处理第 {index} 个反应时出错: {e}")
+                raise
+                
+    finally:
+        # 确保无论是否出错都恢复原始工作目录
         os.chdir(tmp_PATH)
