@@ -30,7 +30,7 @@ from AutoMapper.LammpsTreatmentFuncs import save_text_file
 from AutoMapper.LammpsSearchFuncs import element_atomID_dict
 from AutoMapper.AtomObjectBuilder import build_atom_objects
 
-def map_processor(directory, preDataFileName, postDataFileName, preMoleculeFileName, postMoleculeFileName, preBondingAtoms, postBondingAtoms, deleteAtoms, elementsByType, createAtoms, debug=False):
+def map_processor(directory, preDataFileName, postDataFileName, preMoleculeFileName, postMoleculeFileName, preBondingAtoms, postBondingAtoms, deleteAtoms, elementsByType, createAtoms, debug=False, mapFileName='automap.data'):
     # 设置日志级别
     if debug:
         logging.basicConfig(level='DEBUG')
@@ -154,7 +154,7 @@ def map_processor(directory, preDataFileName, postDataFileName, preMoleculeFileN
     with restore_dir():
         os.chdir(directory)
         outputData = output_map(mappedIDList, preBondingAtoms, preEdgeAtoms, preDeleteAtoms, createAtoms)
-        save_text_file('automap.data', outputData)
+        save_text_file(mapFileName, outputData)
 
     # 返回mappedIDList供其他函数使用，例如测试
     return [mappedIDList, partialMappedIDList]

@@ -44,7 +44,8 @@ def run_automapper_map(
     elements_by_type: List[str],
     delete_atoms: Optional[List[str]] = None,
     create_atoms: Optional[List[str]] = None,
-    debug: bool = False
+    debug: bool = False,
+    map_file_name: str = 'automap.data'
 ) -> None:
     """
     调用 AutoMapper 的 map 功能
@@ -60,6 +61,7 @@ def run_automapper_map(
         delete_atoms: 要删除的原子ID列表 (可选)
         create_atoms: 要创建的原子ID列表 (可选)
         debug: 是否启用调试模式 (默认为False)
+        map_file_name: 输出映射文件的名称，默认为'automap.data'（可选）
     """
     # 分割成键原子为前两个和后两个
     pre_bonding_atoms = bonding_atoms[:2]
@@ -76,7 +78,8 @@ def run_automapper_map(
         delete_atoms, 
         elements_by_type, 
         create_atoms, 
-        debug
+        debug,
+        map_file_name
     )
 
 # 示例用法

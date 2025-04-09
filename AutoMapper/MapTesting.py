@@ -57,7 +57,7 @@ def test_report(mappedIDList, correctPostAtomIDs, reactionName, reactionForm):
 with restore_dir():
     ddMappedIDList = map_processor(
         'Test_Cases/Map_Tests/DGEBA_DETDA/', 'cleanedpre_reaction.data', 'cleanedpost_reaction.data', 'pre-molecule.data', 'post-molecule.data', ['28', '65'], 
-        ['28', '65'], None, ['H', 'H', 'C', 'C', 'N', 'O', 'O', 'O'], None, debug=DEBUG
+        ['28', '65'], None, ['H', 'H', 'C', 'C', 'N', 'O', 'O', 'O'], None, debug=DEBUG, mapFileName='automap.data'
     )
 
 correctDgebaDetda = {

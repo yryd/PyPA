@@ -54,6 +54,7 @@ parser.add_argument('--ebt', metavar='elements_by_type', nargs='+', help='"map" 
 parser.add_argument('--da', metavar='delete_atoms', nargs='+', help='"map" 工具可选参数: 键形成后将被删除的原子ID，用空格分隔')
 parser.add_argument('--debug', action='store_true', help='"map" 工具可选参数: 打印调试语句，包含路径搜索和映射处理器的信息')
 parser.add_argument('--ca', metavar='create_atoms', nargs='+', help='"map" 工具可选参数: 键形成后将被创建的原子ID，用空格分隔')
+parser.add_argument('--map_file', metavar='map_file', nargs='?', default='automap.data', help='"map" 工具可选参数: 输出映射文件的名称，默认为 "automap.data"')
 
 # 从解析器获取参数
 args = parser.parse_args()
@@ -88,7 +89,7 @@ elif tool == "molecule":
 
 # 组合分子和映射创建代码
 elif tool == 'map':
-    map_processor(directory, args.data_files[0], args.data_files[1], args.save_name[0], args.save_name[1], args.ba[:2], args.ba[2:], args.da, args.ebt, args.ca, args.debug)
+    map_processor(directory, args.data_files[0], args.data_files[1], args.save_name[0], args.save_name[1], args.ba[:2], args.ba[2:], args.da, args.ebt, args.ca, args.debug, args.map_file)
 
 # 打印消息显示 AutoMapper 已完成
 print('AutoMapper 任务完成')
