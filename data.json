@@ -1,0 +1,337 @@
+{
+    "file_name": [
+        "r1_1",
+        "r2_1",
+        "sol_1",
+        "r1_1_r2_1_1",
+        "byp",
+        "r1_1_r2_1_1_r2_1_2nd_1"
+    ],
+    "type": {
+        "r1_1": "r1",
+        "r2_1": "r2",
+        "sol_1": "sol",
+        "r1_1_r2_1_1": "p",
+        "byp": "byp",
+        "r1_1_r2_1_1_r2_1_2nd_1": "p"
+    },
+    "smiles": {
+        "r1_1": "C1CNCCN1",
+        "r2_1": "O=C(Cl)C1=CC(C(=O)Cl)=CC(C(=O)Cl)=C1",
+        "sol_1": "CCCCCC",
+        "r1_1_r2_1_1": "[H]c1c(C(=O)Cl)c([H])c(C(=O)N2C([H])([H])C([H])([H])N([H])C([H])([H])C2([H])[H])c([H])c1C(=O)Cl",
+        "byp": "[H]Cl",
+        "r1_1_r2_1_1_r2_1_2nd_1": "[H]c1c(C(=O)Cl)c([H])c(C(=O)N2C([H])([H])C([H])([H])N(C(=O)c3c([H])c(C(=O)Cl)c([H])c(C(=O)Cl)c3[H])C([H])([H])C2([H])[H])c([H])c1C(=O)Cl"
+    },
+    "num": {
+        "r1_1": 150,
+        "r2_1": 100,
+        "sol_1": 50
+    },
+    "paths": {
+        "lt": "/gpool/home/lihuaxiang/pysimm/PyPA/tmp/test/lt/",
+        "mol": "/gpool/home/lihuaxiang/pysimm/PyPA/tmp/test/mol/",
+        "sys": "/gpool/home/lihuaxiang/pysimm/PyPA/tmp/test/sys/",
+        "map": "/gpool/home/lihuaxiang/pysimm/PyPA/tmp/test/map/",
+        "data": "/gpool/home/lihuaxiang/pysimm/PyPA/tmp/test/data/",
+        "run": "/gpool/home/lihuaxiang/pysimm/PyPA/tmp/test/run/",
+        "logs": "/gpool/home/lihuaxiang/pysimm/PyPA/tmp/test/logs/",
+        "result": "/gpool/home/lihuaxiang/pysimm/PyPA/tmp/test/run/result/",
+        "xlink": "/gpool/home/lihuaxiang/pysimm/PyPA/tmp/test/run/xlink/",
+        "insert": "/gpool/home/lihuaxiang/pysimm/PyPA/tmp/test/run/insert/",
+        "MSD": "/gpool/home/lihuaxiang/pysimm/PyPA/tmp/test/run/MSD/",
+        "template": "/gpool/home/lihuaxiang/pysimm/PyPA/data/template/"
+    },
+    "group_smiles": {
+        "r1_1": "N",
+        "r2_1": "C(=O)Cl",
+        "sol_1": "C",
+        "r1_1_r2_1_1": "C(=O)N",
+        "byp": "Cl",
+        "r1_1_r2_1_1_r2_1_2nd_1": "C(=O)N"
+    },
+    "rings": {
+        "r1_1": 1,
+        "r2_1": 1,
+        "sol_1": 0,
+        "r1_1_r2_1_1": null,
+        "byp": null,
+        "r1_1_r2_1_1_r2_1_2nd_1": null
+    },
+    "count_group": {
+        "r1_1": 2,
+        "r2_1": 3,
+        "sol_1": 2,
+        "r1_1_r2_1_1": null,
+        "byp": null,
+        "r1_1_r2_1_1_r2_1_2nd_1": null
+    },
+    "group_min_distances": {
+        "r1_1": 3,
+        "r2_1": 4,
+        "sol_1": 5,
+        "r1_1_r2_1_1": null,
+        "byp": null,
+        "r1_1_r2_1_1_r2_1_2nd_1": null
+    },
+    "group_max_distances": {
+        "r1_1": 3,
+        "r2_1": 4,
+        "sol_1": 5,
+        "r1_1_r2_1_1": null,
+        "byp": null,
+        "r1_1_r2_1_1_r2_1_2nd_1": null
+    },
+    "ar_sp3_balance": {
+        "r1_1": 0.0,
+        "r2_1": 1.0,
+        "sol_1": 0.0,
+        "r1_1_r2_1_1": null,
+        "byp": null,
+        "r1_1_r2_1_1_r2_1_2nd_1": null
+    },
+    "aromatic_rings": {
+        "r1_1": 0,
+        "r2_1": 1,
+        "sol_1": 0,
+        "r1_1_r2_1_1": null,
+        "byp": null,
+        "r1_1_r2_1_1_r2_1_2nd_1": null
+    },
+    "molfinger": {
+        "r1_1": [
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            1,
+            1,
+            0,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0,
+            0
+        ],
+        "r2_1": [
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            1,
+            0,
+            1,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1
+        ],
+        "sol_1": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            1,
+            0,
+            1,
+            0,
+            1,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0
+        ],
+        "r1_1_r2_1_1": null,
+        "byp": null,
+        "r1_1_r2_1_1_r2_1_2nd_1": null
+    },
+    "reaction_index_dicts_list": [
+        {
+            "N_r": 3,
+            "C_r": 18,
+            "Cl_d": 19,
+            "H_d": 11,
+            "N_p": 10,
+            "C_p": 8,
+            "Cl_p": 33,
+            "H_p": 34
+        },
+        {
+            "N_r": 13,
+            "C_r": 34,
+            "Cl_d": 35,
+            "H_d": 27,
+            "N_p": 10,
+            "C_p": 8,
+            "Cl_p": 49,
+            "H_p": 50
+        }
+    ],
+    "p_smiles_num": 1,
+    "p_smiles_num_2nd": 1,
+    "map_templates": {
+        "map_1": [
+            "r1_1",
+            "r2_1",
+            "r1_1_r2_1_1",
+            "byp"
+        ],
+        "map_2": [
+            "r1_1_r2_1_1",
+            "r2_1",
+            "r1_1_r2_1_1_r2_1_2nd_1",
+            "byp"
+        ]
+    },
+    "elem_type_str": "C C C H H H H Cl N N O",
+    "sys_info": {
+        "atom_types": 11,
+        "bond_types": 12,
+        "angle_types": 19,
+        "dihedral_types": 15,
+        "improper_types": 2,
+        "xlo_xhi": [
+            0.0,
+            60.0
+        ],
+        "ylo_yhi": [
+            0.0,
+            60.0
+        ],
+        "zlo_zhi": [
+            0.0,
+            60.0
+        ]
+    },
+    "params": {
+        "xlink": {
+            "x_file_name": "/gpool/home/lihuaxiang/pysimm/PyPA/tmp/test/run/xlink/in.xlink.lammps",
+            "input_file": "/gpool/home/lihuaxiang/pysimm/PyPA/tmp/test/run/xlink/sys_init.lmps",
+            "log_file": "/gpool/home/lihuaxiang/pysimm/PyPA/tmp/test/run/xlink/xlink_simulation.log",
+            "molecule_templates": {
+                "pre1": "/gpool/home/lihuaxiang/pysimm/PyPA/tmp/test/run/xlink/mol.pre_map_1",
+                "post1": "/gpool/home/lihuaxiang/pysimm/PyPA/tmp/test/run/xlink/mol.post_map_1",
+                "pre2": "/gpool/home/lihuaxiang/pysimm/PyPA/tmp/test/run/xlink/mol.pre_map_2",
+                "post2": "/gpool/home/lihuaxiang/pysimm/PyPA/tmp/test/run/xlink/mol.post_map_2"
+            },
+            "molecule_numbers": {
+                "N_single": [
+                    1,
+                    150
+                ],
+                "Cl_single": [
+                    151,
+                    250
+                ]
+            },
+            "elements": "C C C H H H H Cl N N O",
+            "temperature": 298.15,
+            "pressure": 1.0,
+            "timestep": 1.0,
+            "run_time": {
+                "equilibration": 50000,
+                "production": 100000
+            },
+            "output_files": {
+                "balance_log": "/gpool/home/lihuaxiang/pysimm/PyPA/tmp/test/run/xlink/balance_xlink.log",
+                "equilibration": "/gpool/home/lihuaxiang/pysimm/PyPA/tmp/test/run/xlink/system_after_bal_npt.xyz",
+                "dump_xyz": "/gpool/home/lihuaxiang/pysimm/PyPA/tmp/test/run/xlink/dump_xlink.xyz",
+                "dump_custom": "/gpool/home/lihuaxiang/pysimm/PyPA/tmp/test/run/xlink/dump_xlink.custom",
+                "react_log": "/gpool/home/lihuaxiang/pysimm/PyPA/tmp/test/run/xlink/steps_react.log",
+                "final_data": "/gpool/home/lihuaxiang/pysimm/PyPA/tmp/test/run/xlink/system_after_xlink.lmp",
+                "final_xyz": "/gpool/home/lihuaxiang/pysimm/PyPA/tmp/test/run/xlink/system_after_xlink_nosol.xyz",
+                "final_nosol_data": "/gpool/home/lihuaxiang/pysimm/PyPA/tmp/test/run/xlink/system_after_xlink_nosol.lmp",
+                "final_restart": "/gpool/home/lihuaxiang/pysimm/PyPA/tmp/test/run/xlink/system_after_xlink_nosol.rst"
+            },
+            "reactions": {
+                "noact_grp": 0.03,
+                "reactions": [
+                    {
+                        "name": "rxn1",
+                        "nevery": 100,
+                        "mincutoff": 0.0,
+                        "maxcutoff": 5.0,
+                        "pre_mol": "pre1",
+                        "post_mol": "post1",
+                        "map_file": "/gpool/home/lihuaxiang/pysimm/PyPA/tmp/test/run/xlink/txt.map_1",
+                        "stabilize_steps": 60
+                    },
+                    {
+                        "name": "rxn2",
+                        "nevery": 100,
+                        "mincutoff": 0.0,
+                        "maxcutoff": 5.0,
+                        "pre_mol": "pre2",
+                        "post_mol": "post2",
+                        "map_file": "/gpool/home/lihuaxiang/pysimm/PyPA/tmp/test/run/xlink/txt.map_2",
+                        "stabilize_steps": 60
+                    }
+                ]
+            }
+        },
+        "insert": {
+            "h2o_file_name": "/gpool/home/lihuaxiang/pysimm/PyPA/tmp/test/run/insert/in.insertH2O.lammps",
+            "input_file": "/gpool/home/lihuaxiang/pysimm/PyPA/tmp/test/run/xlink/system_after_xlink_nosol.lmp",
+            "log_file": "/gpool/home/lihuaxiang/pysimm/PyPA/tmp/test/run/insert/h2o_simulation.log",
+            "Na_data_file": "/gpool/home/lihuaxiang/pysimm/PyPA/data/template/Na.data",
+            "SO4_data_file": "/gpool/home/lihuaxiang/pysimm/PyPA/data/template/SO4.data",
+            "H2O_data_file": "/gpool/home/lihuaxiang/pysimm/PyPA/data/template/OPC3.data",
+            "Na_mol_file": "/gpool/home/lihuaxiang/pysimm/PyPA/tmp/test/run/insert/Na.txt",
+            "SO4_mol_file": "/gpool/home/lihuaxiang/pysimm/PyPA/tmp/test/run/insert/SO4.txt",
+            "H2O_mol_file": "/gpool/home/lihuaxiang/pysimm/PyPA/tmp/test/run/insert/OPC3.txt",
+            "Na_count": 20,
+            "SO4_count": 10,
+            "H2O_count": 600,
+            "Na_overlap": 2,
+            "SO4_overlap": 2,
+            "H2O_overlap": 2,
+            "elements": "C C C H H H H Cl N N O Na S O O H",
+            "temperature": 298.15,
+            "pressure": 1.0,
+            "timestep": 1.0,
+            "equilibration_steps": 20000,
+            "production_steps": 500000,
+            "balance_log": "/gpool/home/lihuaxiang/pysimm/PyPA/tmp/test/run/insert/balance_H2O.log",
+            "dump_custom": "/gpool/home/lihuaxiang/pysimm/PyPA/tmp/test/run/insert/Na2SO4_balance.custom",
+            "H2O_dump": "/gpool/home/lihuaxiang/pysimm/PyPA/tmp/test/run/insert/H2O_dcd.dcd",
+            "Na2SO4_dump": "/gpool/home/lihuaxiang/pysimm/PyPA/tmp/test/run/insert/Na2SO4_dcd.dcd",
+            "final_data": "/gpool/home/lihuaxiang/pysimm/PyPA/tmp/test/run/insert/Na2SO4_balance.lmp",
+            "final_xyz": "/gpool/home/lihuaxiang/pysimm/PyPA/tmp/test/run/insert/Na2SO4_balance.xyz",
+            "final_PA_xyz": "/gpool/home/lihuaxiang/pysimm/PyPA/tmp/test/run/insert/PA.xyz"
+        },
+        "opc3": {
+            "opc3_file_name": "/gpool/home/lihuaxiang/pysimm/PyPA/tmp/test/run/insert/OPC3.txt",
+            "H2O_angle_types": 21,
+            "H2O_bond_types": 14
+        },
+        "so4": {
+            "so4_file_name": "/gpool/home/lihuaxiang/pysimm/PyPA/tmp/test/run/insert/SO4.txt",
+            "SO4_angle_types": 20,
+            "SO4_bond_types": 13
+        }
+    }
+}
