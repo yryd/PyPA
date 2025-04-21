@@ -1,5 +1,0 @@
-LAMMPS (4 Feb 2025)
-OMP_NUM_THREADS environment is not set. Defaulting to 1 thread. (src/comm.cpp:99)
-  using 1 OpenMP thread(s) per MPI task
-package gpu 1
-log steps.log append

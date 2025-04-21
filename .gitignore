@@ -8,6 +8,8 @@ __pycache__
 
 jiarui/*
 data2mol/*
-test/*
+Sample/*
+bug/*
 onesys.py
 file_1.*
+job.*

@@ -4,4 +4,5 @@
 - packmol
 - moltemplate
 - AutoMapper
+- Jinja2
 
