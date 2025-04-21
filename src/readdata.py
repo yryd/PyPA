@@ -126,6 +126,73 @@ def get_map_type_str(filename):
     element_string = ' '.join(element_list)
     return element_string
 
+def read_sys_info(filename):
+    """
+    从指定文件读取 LAMMPS 数据，并返回系统信息，包括原子类型数量、键类型数量、角度类型数量、
+    二面角类型数量、反二面角类型数量以及模拟盒子的尺寸。
+    只搜索第一节之前的内容。
+
+    Args:
+        filename (str): 要读取的 LAMMPS 数据文件的路径。
+
+    Returns:
+        dict: 包含系统信息的字典，键包括 'atom_types', 'bond_types', 'angle_types', 
+              'dihedral_types', 'improper_types', 'xlo_xhi', 'ylo_yhi', 'zlo_zhi'。
+    """
+    with open(filename, 'r') as f:
+        lines = f.readlines()
+    
+    # 清理输入数据
+    tidiedLines = clean_data(lines)
+    
+    # 初始化结果字典
+    sys_info = {
+        'atom_types': 0,
+        'bond_types': 0,
+        'angle_types': 0,
+        'dihedral_types': 0,
+        'improper_types': 0,
+        'xlo_xhi': (0.0, 0.0),
+        'ylo_yhi': (0.0, 0.0),
+        'zlo_zhi': (0.0, 0.0)
+    }
+    
+    # 查找第一节的索引
+    sectionIndexList = find_sections(tidiedLines)
+    first_section_index = len(tidiedLines)
+    if sectionIndexList and len(sectionIndexList) > 1:
+        first_section_index = sectionIndexList[0]
+    
+    # 只搜索第一节之前的内容
+    header_lines = tidiedLines[:first_section_index]
+    
+    # 查找类型数量信息
+    for line in header_lines:
+        if 'atom types' in line:
+            sys_info['atom_types'] = int(line.split()[0])
+        elif 'bond types' in line:
+            sys_info['bond_types'] = int(line.split()[0])
+        elif 'angle types' in line:
+            sys_info['angle_types'] = int(line.split()[0])
+        elif 'dihedral types' in line:
+            sys_info['dihedral_types'] = int(line.split()[0])
+        elif 'improper types' in line:
+            sys_info['improper_types'] = int(line.split()[0])
+        elif 'xlo xhi' in line:
+            parts = line.split()
+            sys_info['xlo_xhi'] = (float(parts[0]), float(parts[1]))
+        elif 'ylo yhi' in line:
+            parts = line.split()
+            sys_info['ylo_yhi'] = (float(parts[0]), float(parts[1]))
+        elif 'zlo zhi' in line:
+            parts = line.split()
+            sys_info['zlo_zhi'] = (float(parts[0]), float(parts[1]))
+    
+    return sys_info
+
 if __name__ == "__main__":
-    str0 = get_map_type_str('tmp/1/data/cleanedpre.data')
+    str0 = get_map_type_str('../tmp/1/data/cleanedpre.data')
     print(str0)
+    # 测试读取系统信息
+    # sys_info = read_sys_info('../tmp/1/data/cleanedpre.data')
+    # print(sys_info)

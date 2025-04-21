@@ -42,6 +42,8 @@ class MolecularModule:
         self.molfinger = None
 
     def cal_mol_prop(self):
+        self.group_smiles = self.get_functional_group(self.mol_type)
+        self.mol_functional_group = self.functional_group_index(self.mol, self.group_smiles)
         self.rings = self.count_rings(self.mol)
         self.count_group = len(self.mol_functional_group)
         self.group_min_distances, self.group_max_distances = self.calculate_distances(self.mol, self.mol_functional_group, self.count_group)

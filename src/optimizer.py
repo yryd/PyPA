@@ -1,12 +1,14 @@
 # optimizer.py
-# 该模块用于优化小分子结构并输出结果
+# 该模块用于优化小分子结构并输出结果，以及初始化分子属性
 
 import os
 import logging
 from src.molecular import MolecularModule
+from src.execute import exec_ltemplify
 from pysimm import system, forcefield, lmps
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
 def is_contains_file(directory, filename):
     """检查指定目录中是否包含给定文件名（忽略后缀）。
     
@@ -27,133 +29,145 @@ def is_contains_file(directory, filename):
             return True
     return False
 
-def assign_mol_sys_ff(mol_path, file_name, data_out):
-    """应用 GAFF2 力场并优化分子结构。
+def apply_forcefield_and_optimize(mol_path, file_name, data_out, ff_dict=None):
+    """分子应用GAFF2力场并优化分子结构，支持普通分子和含力场指认的离子化合物。
     
     Args:
         mol_path: 输入的分子文件路径。
         file_name: 输入的分子文件名（不带后缀）。
         data_out: 输出数据的路径。
+        ff_dict: 离子的力场字典。
     """
     pwd = os.getcwd()
     mol_file = f'{file_name}.mol'
     data_file = f'{data_out}{file_name}.data'
+    
     try:
         os.chdir(mol_path)
         mol_system = system.read_mol(mol_file)
-        mol_system.apply_forcefield(f=forcefield.Gaff2(), charges="gasteiger")
-        lmps.quick_min(mol_system, np=1, min_style='cg', name='min_cg')
+        
+        if ff_dict:
+            # 处理离子化合物
+            for particle in mol_system.particles:
+                for key in ff_dict:
+                    if particle.elem == key:
+                        particle.type_name = ff_dict.get(key)
+                        particle.set(bonds=None)
+            mol_system.bonds.count = 0
+            mol_system.apply_forcefield(f=forcefield.Gaff2())
+            logging.info("指认离子力场成功")
+        else:
+            # 处理普通分子
+            mol_system.apply_forcefield(f=forcefield.Gaff2(), charges="gasteiger")
+            lmps.quick_min(mol_system, np=1, min_style='cg', name='min_cg')
+            logging.info("优化分子结构成功")
+            
         mol_system.write_lammps(data_file)
-        logging.info("优化分子结构成功")
     except Exception as e:
-        logging.error(f"优化分子结构时出错: {e}")
+        logging.error(f"{'指认离子力场' if ff_dict else '优化分子结构'}时出错: {e}")
         raise
     finally:
         os.chdir(pwd)
 
-def assign_mol_sys_ff_ions(mol_path, file_name, data_out, ff_dict):
-    """为离子分子分配力场并优化结构。
+def create_molecule_file(file_name, g_type, obj_mol, mol_path, data_out, mol_ff=None):
+    """处理单类分子：生成结构文件并应用力场。
     
     Args:
-        mol_path: 输入的离子分子文件路径。
-        file_name: 输入的离子分子文件名（不带后缀）。
-        data_out: 输出数据的路径。
-        ff_dict: 力场字典，用于离子类型的分配。
-    """
-    pwd = os.getcwd()
-    mol_file = f'{file_name}.mol'
-    data_file = f'{data_out}{file_name}.data'
-    try:
-        os.chdir(mol_path)
-        mol_system_ions = system.read_mol(mol_file)
-        for i in mol_system_ions.particles:
-            for key in ff_dict:
-                if i.elem == key:
-                    i.type_name = ff_dict.get(key)
-                    i.set(bonds=None)
-        mol_system_ions.bonds.count = 0
-        mol_system_ions.apply_forcefield(f=forcefield.Gaff2())
-        mol_system_ions.write_lammps(data_file)
-        logging.info("指认离子力场成功")
-    except Exception as e:
-        logging.error(f"指认离子力场时出错: {e}")
-        raise
-    finally:
-        os.chdir(pwd)
-    
-def generate_molecular_structure(smiles, file_name, mol_path, g_type):
-    """生成分子结构、图片并保存到指定路径。
-    
-    Args:
-        smiles: 分子的 SMILES 字符串。
-        file_name: 输出文件名（不带后缀）。
-        mol_path: 分子文件的输出路径。
-        g_type: 分子类型:
-                反应物: r1(氨基), r2(酰氯)
-                溶剂: sol
-                产物: p
-                副产物: byp
-    """
-    logging.info(f'检测到新的{g_type}分子')
-    mol = MolecularModule(smiles, g_type)
-    mol.rkmol_print(mol.mol, mol.smiles, f'{mol_path}{file_name}')
-
-def get_mol_info(path_dict, g_type):
-    """根据分子类型获取文件名和 SMILES 字符串。
-    
-    Args:
-        path_dict: 包含分子名称和 SMILES 的字典。
-        g_type: 分子的类型。
-    
-    Returns:
         file_name: 分子文件名。
-        smiles: 分子的 SMILES 字符串。
+        g_type: 分子类型。
+        obj_mol: 分子对象。
+        mol_path: 分子文件输出路径。
+        data_out: 数据输出路径。
+        mol_ff: 离子力场字典，默认为None。
     """
-    file_name = path_dict['names'][g_type]
-    smiles = path_dict['smiles'][g_type]
-    return file_name, smiles
+    # 处理所有类型分子
+    if file_name and not is_contains_file(mol_path, file_name):
+        logging.info(f'检测到新的{g_type}分子')
+        obj_mol.rkmol_print(obj_mol.mol, obj_mol.smiles, f'{mol_path}{file_name}')
+        apply_forcefield_and_optimize(mol_path, file_name, data_out, mol_ff)
+        logging.info(f"已添加{g_type}分子 DATA 文件至相应目录")
 
-def add_mol_data(path_dict, g_type, mol_path, data_out, mol_ff = {}):
-    """根据分子类型添加分子数据并优化结构。
+def init_mol_prop(path_dict, file_names, mol_ff = None):
+    """
+    初始化分子属性，通过SMILES实例化分子并计算其属性，优化并生成结构
     
     Args:
-        path_dict: 包含分子名称和 SMILES 的字典。
-        g_type: 分子的类型。
-        mol_path: 分子文件的输出路径。
-        data_out: 输出数据的路径。
-        mol_ff: 离子的 GAFF2 力场字典。
+        path_dict: 包含基本目录结构、反应信息的字典
+        file_names: 分子文件名列表
+        mol_ff: 离子力场字典，默认为None
+        
+    Returns:
+        path_dict: 包含基本目录结构、反应信息、分子属性的补充字典
+        mols: 分子对象列表
     """
-    file_name, smiles = get_mol_info(path_dict, g_type)
-    if not (g_type == 'p' or g_type == 'byp'):
-        if not is_contains_file(mol_path, file_name):
-            generate_molecular_structure(smiles, file_name, mol_path, g_type)
-            assign_mol_sys_ff(mol_path, file_name, data_out)
-    elif g_type == 'p':
-        for name, smile in zip(file_name, smiles):
-            if not is_contains_file(mol_path, name):
-                generate_molecular_structure(smile, name, mol_path, g_type)
-                assign_mol_sys_ff(mol_path, name, data_out)
-    else:
-        if not is_contains_file(mol_path, file_name):
-            generate_molecular_structure(smiles, file_name, mol_path, g_type)
-            assign_mol_sys_ff_ions(mol_path, file_name, data_out, mol_ff)
-    logging.info(f"已添加{g_type}分子 DATA 文件至相应目录")
+    logging.info('实例化反应物分子...')
 
-def optimize_structure(path_dict, mol_ff = {'Cl': 'Cl', 'H': 'hx'}):
-    """根据反应物的 SMILES 优化分子结构。
+    # 通过 SMILES 实例化反应物 MolecularModule 类
+    mols = []
+    for name in file_names:
+        mol = MolecularModule(path_dict['smiles'][name], path_dict['type'][name])
+        # 仅对反应物和溶剂分子计算属性
+        if path_dict['type'][name] in ['r1', 'r2', 'sol']:
+            # 显式调用计算分子属性
+            mol.cal_mol_prop()
+        # 优化生成分子结构
+        create_molecule_file(name, path_dict['type'][name], mol, path_dict['paths']['mol'], path_dict['paths']['data'], mol_ff)
+        exec_ltemplify(path_dict['paths']['data'], path_dict['paths']['lt'], name)
+        mols.append(mol)
+    logging.info('实例化反应物分子完成')
     
-    Args:
-        path_dict: 包含反应物、溶剂及产物的 SMILES 和文件名的字典。
-        data_path: 数据输出路径。
-        mol_ff: 离子的力场字典（默认为 {'Cl': 'Cl', 'H': 'hx'}）。
-    """
-    mol_path = path_dict['paths']['mol']
-    data_out = path_dict['paths']['data']
+    # 将分子性质添加到 path_dict 中
+    # 构造各个性质的临时字典
+    molecular_properties = [
+        'group_smiles', 'rings', 'count_group', 'group_min_distances',
+        'group_max_distances', 'ar_sp3_balance', 'aromatic_rings', 'molfinger'
+    ]
+    
+    # 使用字典推导式构建属性字典
+    property_dicts = {
+        prop: {name: getattr(mol, prop) for name, mol in zip(file_names, mols)}
+        for prop in molecular_properties
+    }
+    
+    # 将属性字典更新到path_dict中
+    for prop in property_dicts:
+        if prop in path_dict:
+            path_dict[prop].update(property_dicts[prop])
+        else:
+            path_dict[prop] = property_dicts[prop]
+    
+    return path_dict, mols
 
-    # 输出 SMILES 结构到 data/mol 文件夹
-    add_mol_data(path_dict, 'r1', mol_path, data_out)
-    add_mol_data(path_dict, 'r2', mol_path, data_out)
-    add_mol_data(path_dict, 'sol', mol_path, data_out)
-    add_mol_data(path_dict, 'p', mol_path, data_out)
-    add_mol_data(path_dict, 'byp', mol_path, data_out, mol_ff)
+
+if __name__ == "__main__":
+    # 测试配置 - 验证分子初始化、力场应用和优化流程
+    file_names = ['r1_1', 'r2_1', 'sol_1']
+    mol_ff = None  # 离子力场字典，测试使用None表示普通分子
+    
+    path_dict = {
+        'file_name': file_names,
+        'type': {
+            'r1_1': 'r1',
+            'r2_1': 'r2',
+            'sol_1': 'sol'
+        },
+        'smiles': {
+            'r1_1': "C",
+            'r2_1': "C", 
+            'sol_1': "C"
+        },
+        'num': {
+            'r1_1': 100,
+            'r2_1': 100,
+            'sol_1': 100
+        },
+        'paths': {
+            'mol': './mol/',
+            'data': './data/'
+        }
+    }
+    
+    # 初始化分子属性并验证流程
+    path_dict, mols = init_mol_prop(path_dict, file_names, mol_ff)
+    logging.info("测试完成 - 分子初始化流程验证通过")
     

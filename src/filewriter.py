@@ -22,7 +22,7 @@ def write_sys_lt_str(lt_PATH, name_list, num_list, box_len = 0):
     for i,j in zip(name_list, num_list):
         if j:
             str_list.append(f'mol_{i} = new {i} [{j}]\n')
-    
+
     if box_len:
         str_list.append('\nwrite_once("Data Boundary") {\n')
         str_list.append(f'    0.0 {box_len} xlo xhi\n')
@@ -31,8 +31,8 @@ def write_sys_lt_str(lt_PATH, name_list, num_list, box_len = 0):
         str_list.append('}\n')
     return str_list
 
-def write_react_lt_str(lt_PATH, name_list, box_len = 0):
-    """生成 LT 反应前后模板文件的字符串内容。
+def write_react_lt(lt_PATH, map_file_name, name_list):
+    """生成 LT 反应前后模板文件。
     
     Args:
         name_list: 模板分子的名称列表。
@@ -47,14 +47,8 @@ def write_react_lt_str(lt_PATH, name_list, box_len = 0):
     str_list.append('\n')
     str_list.append(f'mol_{name_list[0]} = new {name_list[0]}\n')
     str_list.append(f'mol_{name_list[1]} = new {name_list[1]}.move(0.0, 0.0, 5.0)\n')
-    
-    if box_len:
-        str_list.append('\nwrite_once("Data Boundary") {\n')
-        str_list.append(f'    0.0 {box_len} xlo xhi\n')
-        str_list.append(f'    0.0 {box_len} ylo yhi\n')
-        str_list.append(f'    0.0 {box_len} zlo zhi\n')
-        str_list.append('}\n')
-    return str_list
+    write_file(lt_PATH, map_file_name + '.lt', str_list)
+    return
 
 def write_sys_lt(lt_PATH, name_list, num_list, box_len = 0):
     """生成 LT 系统模板文件。
@@ -69,18 +63,18 @@ def write_sys_lt(lt_PATH, name_list, num_list, box_len = 0):
     write_file(lt_PATH, 'system.lt', str_list)
     return
 
-def write_template_lt(lt_PATH, pre_template_list, post_template_list, index = 0):
-    """根据给定的模板列表生成 LAMMPS 模板文件。
+# def write_template_lt(lt_PATH, pre_template_list, post_template_list, index = 0):
+#     """根据给定的模板列表生成 LAMMPS 模板文件。
     
-    Args:
-        lt_PATH: 输出 LAMMPS 模板文件的路径。
-        pre_template_list: 反应物模板分子名称列表。
-        post_template_list: 产物模板分子名称列表。
-    """
-    pre_str = write_react_lt_str(lt_PATH, pre_template_list)
-    post_str = write_react_lt_str(lt_PATH, post_template_list)
-    write_file(lt_PATH, 'pre.lt', pre_str)
-    write_file(lt_PATH, f'post_{index}.lt', post_str)
+#     Args:
+#         lt_PATH: 输出 LAMMPS 模板文件的路径。
+#         pre_template_list: 反应物模板分子名称列表。
+#         post_template_list: 产物模板分子名称列表。
+#     """
+#     pre_str = write_react_lt_str(lt_PATH, pre_template_list)
+#     post_str = write_react_lt_str(lt_PATH, post_template_list)
+#     write_file(lt_PATH, 'pre.lt', pre_str)
+#     write_file(lt_PATH, f'post_{index}.lt', post_str)
 
 def write_packmol_inp(sys_PATH, mol_PATH, mol_list, mol_num_list, box_len, file_type = 'pdb', output_name = 'system'):
     """生成 Packmol 输入文件。

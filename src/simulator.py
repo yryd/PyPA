@@ -4,9 +4,11 @@
 import os
 import logging
 import ast
+import time
 from src.filewriter import write_file, combin_files
 from pysimm.system import System, read_lammps
 from pysimm.lmps import Simulation
+from src.readdata import read_sys_info
 
 # 设置日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -109,29 +111,121 @@ def simulation_init(db, id, tmp_path):
     path_dict['paths'] = paths
     return path_dict
 
+def path_init(reactant1_smiles, reactant2_smiles, solvent_smiles, 
+                          reactant1_ratio, reactant2_ratio, solvent_ratio,
+                          num, tmp_path='tmp/', id = "test", reactant1_key = "1",
+                          reactant2_key = "1", solvent_key = "1"):
+    """
+    初始化模拟，直接接收反应物和溶剂的SMILES字符串及其比例作为输入，创建文件路径，存储反应结构与条件。
+
+    Args:
+        reactant1_smiles: 反应物1的SMILES字符串
+        reactant2_smiles: 反应物2的SMILES字符串
+        solvent_smiles: 溶剂的SMILES字符串
+        reactant1_ratio: 反应物1的比例
+        reactant2_ratio: 反应物2的比例
+        solvent_ratio: 溶剂的比例
+        num: 反应物的分子数量基数
+        tmp_path: 临时文件路径，用于存放模拟结果
+
+    Returns:
+        path_dict: 包含基本目录、反应条件、反应物结构的字典
+    """
+    logging.info('初始化模拟路径...')    
+    # 创建反应系统文件路径
+    base_PATH = os.getcwd()
+    # 确保路径为绝对路径
+    base_PATH = os.path.abspath(base_PATH)
+    reaction_path = os.path.join(base_PATH, tmp_path, id)
+
+    os.makedirs(reaction_path, exist_ok=True)
+
+    # 创建各个子目录路径
+    paths = {
+        'lt': os.path.join(reaction_path, 'lt') + '/',
+        'mol': os.path.join(reaction_path, 'mol') + '/',
+        'sys': os.path.join(reaction_path, 'sys') + '/',
+        'map': os.path.join(reaction_path, 'map') + '/',
+        'data': os.path.join(reaction_path, 'data') + '/',
+        'run': os.path.join(reaction_path, 'run') + '/',
+        'logs': os.path.join(reaction_path, 'logs') + '/',
+        'result': os.path.join(reaction_path, 'run') + '/result/',
+        'xlink': os.path.join(reaction_path, 'run') + '/xlink/',
+        'insert': os.path.join(reaction_path, 'run') + '/insert/',
+        'MSD': os.path.join(reaction_path, 'run') + '/MSD/'
+    }
+
+    # 创建所有子目录
+    for path in paths.values():
+        os.makedirs(path, exist_ok=True)
+        logging.info(f"创建目录: {path}")
+
+    # 计算各组分的分子数量
+    r1_num = reactant1_ratio * num
+    r2_num = reactant2_ratio * num
+    sol_num = solvent_ratio * num
+    
+    # 创建反应物基本信息字典
+    # 使用文件名作为键
+    r1_name = f'r1_{reactant1_key}'
+    r2_name = f'r2_{reactant2_key}'
+    sol_name = f'sol_{solvent_key}'
+    # file_name 按顺序排放r1, r2, sol, p, byp 其中p可能多个
+    path_dict = {
+        'file_name': [r1_name, r2_name, sol_name],
+        'type': {
+            r1_name: 'r1',
+            r2_name: 'r2',
+            sol_name: 'sol'
+        },
+        'smiles': {
+            r1_name: reactant1_smiles,
+            r2_name: reactant2_smiles,
+            sol_name: solvent_smiles
+        },
+        'num': {
+            r1_name: r1_num,
+            r2_name: r2_num,
+            sol_name: sol_num
+        }
+    }
+
+
+    # 将路径信息添加到 path_dict 中
+    path_dict['paths'] = paths
+    path_dict['paths']['template'] = base_PATH + '/data/template/'
+    logging.info('初始化模拟路径完成')
+    
+    return path_dict
+
+
 def simulation_file_collect(path_dict):
     data_PATH = path_dict['paths']['data']
     map_PATH = path_dict['paths']['map']
-    run_PATH = path_dict['paths']['run']
-    post_nums = len(path_dict['smiles']['p'])
+    xlink_PATH = path_dict['paths']['xlink']
     str_list = []
-    str_list.append(f'cp {data_PATH}cleanedsystem.data {run_PATH}system.data\n')
-    str_list.append(f'cp {data_PATH}cleanedsystem.in.settings {run_PATH}system.in.settings\n')
-    str_list.append(f'cp {data_PATH}system.in.init {run_PATH}system.in.init\n')
-    str_list.append(f'cp {map_PATH}pre_mol.data {run_PATH}pre_mol.data\n')
-    for i in range(post_nums):
-        str_list.append(f'cp {map_PATH}post_{i}_mol.data {run_PATH}post_{i}_mol.data\n')
-        str_list.append(f'cp {map_PATH}automap_{i}.data {run_PATH}automap_{i}.data\n')
+    str_list.append(f'cp {data_PATH}cleanedsystem.data {xlink_PATH}system.data\n')
+    str_list.append(f'cp {data_PATH}cleanedsystem.in.settings {xlink_PATH}system.in.settings\n')
+    # str_list.append(f'cp {data_PATH}system.in.init {xlink_PATH}system.in.init\n')
+    for map_name in path_dict['map_templates'].keys():
+        str_list.append(f'cp {map_PATH}mol.pre_{map_name} {xlink_PATH}mol.pre_{map_name}\n')
+        str_list.append(f'cp {map_PATH}mol.post_{map_name} {xlink_PATH}mol.post_{map_name}\n')
+        str_list.append(f'cp {map_PATH}txt.{map_name} {xlink_PATH}txt.{map_name}\n')
     
-    write_file(run_PATH, 'getfile.sh', str_list)
+    write_file(xlink_PATH, 'getfile.sh', str_list)
     
     try:
-        os.system(f'. {run_PATH}getfile.sh > /dev/null 2>&1')
-        # 将 system.data 和 system.in.settings 的内容合并到 data.sys
-        combin_files(run_PATH)
+        os.system(f'. {xlink_PATH}getfile.sh > /dev/null 2>&1')
+        # 将 system.data 和 system.in.settings 的内容合并到 sys_init.lmps
+        combin_files(xlink_PATH)
     except Exception as e:
-        logging.error(f"校验生成文件完整性出错: {e}")
+        logging.error(f"校验生成输入文件完整性出错: {e}")
         raise
+
+    sys_info = read_sys_info(xlink_PATH + 'sys_init.lmps')
+    path_dict['sys_info'] = sys_info
+    logging.info('模拟文件收集完成')
+    return path_dict
 
 
 # 继承 pysimm 包 System 类
