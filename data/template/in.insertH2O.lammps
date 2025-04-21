@@ -1,0 +1,110 @@
+log steps.log append
+################################################################################
+units           real
+boundary        p p p
+atom_style      full
+neighbor        2.0 bin
+neigh_modify    delay 5 every 1
+
+pair_style      lj/cut/coul/long 12.0
+bond_style      harmonic
+angle_style     harmonic
+dihedral_style  fourier
+improper_style  cvff
+kspace_style    pppm 1e-5
+special_bonds   amber
+
+read_data       system_after_xlink_nosol.lmp extra/atom/types 5 extra/bond/types 2 extra/angle/types 2 extra/bond/per/atom 3 extra/angle/per/atom 3
+
+################################################################################
+group           PA union all
+
+thermo_style    custom xlo xhi ylo yhi zlo zhi
+
+variable        box_center_x equal (xhi+xlo)/2
+variable        box_center_y equal (yhi+ylo)/2
+variable        box_center_z equal (zhi+zlo)/2
+
+variable        Na_offset_atom_types equal extract_setting(ntypes) - 5
+variable        SO4_offset_atom_types equal extract_setting(ntypes) - 4
+variable        H2O_offset_atom_types equal extract_setting(ntypes) - 2
+
+variable        SO4_offset_bond_types equal extract_setting(nbondtypes) - 2
+variable        H2O_offset_bond_types equal extract_setting(nbondtypes) - 1
+
+variable        SO4_offset_angle_types equal extract_setting(nangletypes) - 2
+variable        H2O_offset_angle_types equal extract_setting(nangletypes) - 1
+
+read_data       Na.data add append offset ${Na_offset_atom_types} 0 0 0 0 shift ${box_center_x} ${box_center_y} ${box_center_z} group del_1
+delete_atoms    group del_1 compress yes
+read_data       SO4.data add append offset ${SO4_offset_atom_types} ${SO4_offset_bond_types} ${SO4_offset_angle_types} 0 0 shift ${box_center_x} ${box_center_y} ${box_center_z} group del_2
+delete_atoms    group del_2 compress yes
+read_data       OPC3.data add append offset ${H2O_offset_atom_types} ${H2O_offset_bond_types} ${H2O_offset_angle_types} 0 0 shift ${box_center_x} ${box_center_y} ${box_center_z} group del_3
+delete_atoms    group del_3 compress yes
+
+molecule        Na Na.txt
+molecule        SO4 SO4.txt
+molecule        H2O OPC3.txt
+
+region          water_range block EDGE EDGE EDGE EDGE EDGE EDGE units box
+create_atoms    ${Na_offset_atom_types} random 20 25367 water_range mol Na 25367 overlap 2
+group           Na subtract all PA
+reset_atoms     mol Na
+run             0
+
+create_atoms    ${SO4_offset_atom_types} random 10 25367 water_range mol SO4 25367 overlap 2
+group           Na2SO4 subtract all PA
+reset_atoms     mol Na2SO4
+reset_atoms     image Na2SO4
+run             0
+
+create_atoms    ${H2O_offset_atom_types} random 600 25367 water_range mol H2O 25367 overlap 2
+group           water subtract all PA Na2SO4
+reset_atoms     mol water
+reset_atoms     image water
+run             0
+
+compute         water_atom_num water count/type atom
+variable        O_atom_types equal ${H2O_offset_atom_types} + 1
+variable        water_num equal c_water_atom_num[${O_atom_types}]
+run             0
+print           "The system water num is now ${water_num}"
+
+
+minimize        1.0e-7 1.0e-7 100000 400000
+min_style       cg
+reset_timestep  0
+
+
+timestep        1
+reset_atoms     id
+velocity        Na2SO4 create 298.15 4928459 rot yes dist gaussian
+velocity        water create 298.15 4928459 rot yes dist gaussian
+fix             relax_md all nvt temp 298.15 298.15 100.0
+# 20ps
+run             20000
+unfix           relax_md
+
+
+thermo          100
+thermo_style    custom step temp pe press density time
+fix             file_balance_out all print 100 "$(step) $(density) $(time) $(temp) $(pe)" file "balance_H2O.log" title "step density time T E"
+reset_timestep  0
+
+dump            Na2SO4_balance all custom 10000 Na2SO4_balance.custom id type q x y z
+dump            H2O_dcd water dcd 1000 H2O_dcd.dcd
+dump            Na2SO4_dcd Na2SO4 dcd 1000 Na2SO4_dcd.dcd
+fix             relax_md all npt temp 298.15 298.15 100.0 iso 1.0 1.0 1000.0
+
+# 500ps
+run             500000
+unfix           relax_md
+unfix           file_balance_out
+
+write_data      Na2SO4_balance.lmp
+write_dump      all xyz Na2SO4_balance.xyz modify element C C C H H H H Cl N N O Na S O O H
+undump          Na2SO4_balance
+undump          H2O_dcd
+undump          Na2SO4_dcd
+
+quit

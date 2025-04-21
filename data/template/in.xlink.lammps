@@ -1,0 +1,94 @@
+log steps.log append
+################################################################################
+units           real
+boundary        p p p
+atom_style      full
+neighbor        2.0 bin
+neigh_modify    delay 5 every 1
+
+pair_style      lj/cut/coul/long 12.0
+bond_style      harmonic
+angle_style     harmonic
+dihedral_style  fourier
+improper_style  cvff
+kspace_style    pppm 1e-5
+kspace_modify   mesh 32 32 32
+special_bonds   amber
+
+read_data       "sys_init.lmps" extra/special/per/atom 3
+# include         "system.in.settings"
+
+################################################################################
+# 刚性约束，减少开销
+# fix             frigid benzene rigid single
+# fix             shake all shake 0.0001 20 0 b 1 a 1
+
+molecule        pre1 mol.pre_map_1
+molecule        pre2 mol.pre_map_2
+molecule        post1 mol.post_map_1
+molecule        post2 mol.post_map_2
+
+group           N_single molecule <> 1 150
+group           Cl_single molecule <> 151 250
+group           sol subtract all N_single Cl_single
+
+minimize        1.0e-5 1.0e-5 100000 400000
+min_style       cg
+reset_timestep  0
+
+thermo          100
+thermo_style    custom step temp pe press density 
+
+
+fix             file_balance_out all print 100 "$(step) $(pe) $(time) $(press) $(temp)" file "balance.log" title "step E time press T"
+timestep        1
+velocity        all create 298.15 4928459 rot yes dist gaussian
+
+# fix             relax_md all nvt temp 298.15 298.15 100.0
+
+# # 20ps
+# run             20000
+# unfix           relax_md
+# write_dump      all xyz system_after_bal_npt.xyz modify element C C C H H H H Cl N N O
+
+
+reset_timestep  0
+fix             relax_md2 all npt temp 298.15 298.15 100.0 iso 1.0 1.0 1000.0
+# 20ps
+run             50000
+unfix           relax_md2
+unfix           file_balance_out
+write_dump      all xyz system_after_bal_npt.xyz modify element C C C H H H H Cl N N O
+
+neigh_modify    delay 5 every 1 check yes one 10000
+reset_timestep  0
+dump            dump_xlink all xyz 10000 dump_xlink.xyz
+dump_modify     dump_xlink element C C C H H H H Cl N N O
+
+dump            dump_xlink_custom all custom 10000 dump_xlink.custom id type q x y z
+
+fix             xlink_fix all bond/react stabilization yes noact_grp .03 &
+                    react rxn1 all 100 0.0 5.0 pre1 post1 txt.map_1 stabilize_steps 60 &
+                    react rxn2 all 100 0.0 5.0 pre2 post2 txt.map_2 stabilize_steps 60
+fix             to_center all recenter NULL NULL NULL
+
+fix             react_out all print 100 "$(step) $(f_xlink_fix[1])" file "steps_react.log" title "step f_react[1]"
+
+fix             npt_md all npt temp 298.15 298.15 100.0 iso 1.0 1.0 1000.0
+run             100000
+unfix           react_out
+unfix           xlink_fix
+unfix           to_center
+unfix           npt_md
+undump          dump_xlink
+undump          dump_xlink_custom
+
+
+write_data      system_after_xlink.lmp
+delete_atoms    group sol mol yes compress yes
+write_dump      all xyz system_after_xlink_nosol.xyz modify element C C C H H H H Cl N N O
+
+write_data      system_after_xlink_nosol.lmp
+write_restart   system_after_xlink_nosol.rst
+
+quit

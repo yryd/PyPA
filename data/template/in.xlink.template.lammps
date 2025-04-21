@@ -1,0 +1,85 @@
+log {{ log_file|default('steps.log') }} append
+################################################################################
+units           real
+boundary        p p p
+atom_style      full
+neighbor        2.0 bin
+neigh_modify    delay 5 every 1
+
+pair_style      lj/cut/coul/long 12.0
+bond_style      harmonic
+angle_style     harmonic
+dihedral_style  fourier
+improper_style  cvff
+kspace_style    pppm 1e-5
+kspace_modify   mesh 32 32 32
+special_bonds   amber
+
+read_data       "{{ input_file|default('sys_init.lmps') }}" extra/special/per/atom 3
+
+################################################################################
+
+{% for mol_name, mol_file in molecule_templates.items() %}
+molecule        {{ mol_name }} {{ mol_file }}
+{% endfor %}
+
+{% for group_name, range in molecule_numbers.items() %}
+group           {{ group_name }} molecule <> {{ range[0] }} {{ range[1] }}
+{% endfor %}
+group           sol subtract all {{ molecule_numbers.keys()|join(' ') }}
+
+minimize        1.0e-7 1.0e-7 100000 400000
+min_style       cg
+reset_timestep  0
+
+thermo          100
+thermo_style    custom step temp pe press density 
+
+
+fix             file_balance_out all print 100 "$(step) $(pe) $(time) $(press) $(temp)" file "{{ output_files.balance_log|default('balance.log') }}" title "step E time press T"
+timestep        {{ timestep|default('1.0') }}
+velocity        all create {{ temperature|default('298.15') }} 4928459 rot yes dist gaussian
+
+reset_timestep  0
+fix             relax_md2 all npt temp {{ temperature|default('298.15') }} {{ temperature|default('298.15') }} 100.0 iso {{ pressure|default('1.0') }} {{ pressure|default('1.0') }} 1000.0
+# 50ps
+run             {{ run_time.equilibration|default('50000') }}
+unfix           relax_md2
+unfix           file_balance_out
+write_dump      all xyz {{ output_files.equilibration|default('system_after_bal_npt.xyz') }} modify element {{ elements }}
+
+neigh_modify    delay 5 every 1 check yes one 10000
+reset_timestep  0
+dump            dump_xlink all xyz 10000 {{ output_files.dump_xyz|default('dump_xlink.xyz') }}
+dump_modify     dump_xlink element {{ elements }}
+
+dump            dump_xlink_custom all custom 10000 {{ output_files.dump_custom|default('dump_xlink.custom') }} id type q x y z
+
+fix             xlink_fix all bond/react stabilization yes noact_grp {{ reactions.noact_grp|default('.03') }} &
+{% for rxn in reactions.reactions %}
+                    react {{ rxn.name }} all {{ rxn.nevery|default('100') }} {{ rxn.prob_style|default('0.0') }} {{ rxn.cutoff|default('5.0') }} {{ rxn.pre_mol }} {{ rxn.post_mol }} {{ rxn.map_file }} stabilize_steps {{ rxn.stabilize_steps|default('60') }} {% if not loop.last %}&{% endif %}
+
+{% endfor %}
+
+fix             to_center all recenter NULL NULL NULL
+
+fix             react_out all print 100 "$(step) $(f_xlink_fix[1])" file "{{ output_files.react_log|default('steps_react.log') }}" title "step f_react[1]"
+
+fix             npt_md all npt temp {{ temperature|default('298.15') }} {{ temperature|default('298.15') }} 100.0 iso {{ pressure|default('1.0') }} {{ pressure|default('1.0') }} 1000.0
+run             {{ run_time.production|default('100000') }}
+unfix           react_out
+unfix           xlink_fix
+unfix           to_center
+unfix           npt_md
+undump          dump_xlink
+undump          dump_xlink_custom
+
+
+write_data      {{ output_files.final_data|default('system_after_xlink.lmp') }}
+delete_atoms    group sol mol yes compress yes
+write_dump      all xyz {{ output_files.final_xyz|default('system_after_xlink_nosol.xyz') }} modify element {{ elements }}
+
+write_data      {{ output_files.final_nosol_data|default('system_after_xlink_nosol.lmp') }}
+write_restart   {{ output_files.final_restart|default('system_after_xlink_nosol.rst') }}
+
+quit

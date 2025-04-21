@@ -1,0 +1,31 @@
+LAMMPS Na Atom File
+
+     1 atoms
+     0 bonds
+     0 angles
+     0 dihedrals
+     0 impropers
+
+     1 atom types
+     0 bond types
+     0 angle types
+     0 dihedral types
+     0 improper types
+
+    -0.73810    0.73810  xlo xhi
+    -0.06750    0.06750  ylo yhi
+    -0.08070    0.08070  zlo zhi
+
+Masses
+
+1       22.99  # Na
+
+Pair Coeffs  # lj/cut/coul/long
+
+1     0.03012160   2.61746043389632
+
+
+Atoms
+#  atom  mol    type   charge         X           Y           Z
+     1     1     1      1             0           0           0
+
